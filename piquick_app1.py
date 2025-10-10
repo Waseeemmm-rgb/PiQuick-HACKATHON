@@ -22,12 +22,12 @@ with col1:
     # Numeric Inputs
     pressure = [st.number_input(f'Day {i+1} Pressure (bar)', value=10.0, step=0.1) for i in range(5)]
     temperature = [st.number_input(f'Day {i+1} Temperature (°C)', value=65.0, step=0.1) for i in range(5)]
-    flow = [st.number_input(f'Day {i+1} Flow (L/min)', value=200.0, step=1) for i in range(5)]
+    flow = [st.number_input(f'Day {i+1} Flow (L/min)', value=200, step=1) for i in range(5)]
     vibration = [st.number_input(f'Day {i+1} Vibration (Hz)', value=50.0, step=0.1) for i in range(5)]
     oil_condition = [st.number_input(f'Day {i+1} Oil Condition', value=2.0, step=0.1) for i in range(5)]
     chemical_concentration = [st.number_input(f'Day {i+1} Chemical Concentration (%)', value=5.0, step=0.1) for i in range(5)]
-    energy_consumption = [st.number_input(f'Day {i+1} Energy Consumption (kWh)', value=100.0, step=1) for i in range(5)]
-    emissions = [st.number_input(f'Day {i+1} Emissions (ppm)', value=50.0, step=1) for i in range(5)]
+    energy_consumption = [st.number_input(f'Day {i+1} Energy Consumption (kWh)', value=100, step=1) for i in range(5)]
+    emissions = [st.number_input(f'Day {i+1} Emissions (ppm)', value=50, step=1) for i in range(5)]
     alerts = [st.selectbox(f'Day {i+1} Alert / Safety Trip', ['No', 'Yes']) for i in range(5)]
     
     # Interactive Checkboxes
