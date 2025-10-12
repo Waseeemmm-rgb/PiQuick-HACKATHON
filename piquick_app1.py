@@ -3,82 +3,37 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # ----------------------------
-# Page Setup + Global Style
+# Page + Styles
 # ----------------------------
-st.set_page_config(page_title="PIQuick - OQ Base Industries", layout="wide")
-
+st.set_page_config(page_title="PIQuick - OQBI", layout="wide")
 st.markdown(
     """
     <style>
-        /* Overall page background */
-        .stApp {
-            background-color: #002b5c;  /* OQBI deep blue */
-            color: white;
-        }
-
-        /* Banner header */
         .banner {
-            background: linear-gradient(90deg,#002b5c,#004b8d);
-            padding: 18px;
-            border-radius: 10px;
+            background: linear-gradient(90deg,#003366,#0073b1);
+            padding: 14px;
+            border-radius: 8px;
             color: white;
             text-align: center;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-
-        /* Section containers */
-        .section-box {
-            background-color: rgba(255,255,255,0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
-
-        /* Summary container */
-        .summary-box {
-            background-color: rgba(0,150,255,0.15);
-            padding: 12px;
-            border-radius: 10px;
-        }
-
-        /* Dataframe tweaks */
-        div[data-testid="stDataFrame"] {
-            background-color: white;
-            border-radius: 8px;
-            color: black;
-        }
-
-        /* Headings color for contrast */
-        h1, h2, h3, h4 {
-            color: #ffffff;
-        }
-
-        /* Sliders */
-        .stSlider > div[data-baseweb="slider"] > div {
-            background-color: #004b8d !important;
-        }
+        .section-box { background-color: #f2f9ff; padding:10px; border-radius:8px; }
+        .summary-box { background-color: #e8f6f9; padding:12px; border-radius:8px; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # ----------------------------
-# Header with logo + online heading
+# Header with logo (online)
 # ----------------------------
-logo_url = "https://upload.wikimedia.org/wikipedia/commons/9/97/OQ_logo.png"  # OQ logo online
+logo_url = "https://upload.wikimedia.org/wikipedia/commons/9/97/OQ_logo.png"  # online link
 st.markdown("<div style='text-align:center; margin-bottom:8px;'>", unsafe_allow_html=True)
-st.image(logo_url, width=130)
+st.image(logo_url, width=120)
 st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown(
-    "<div class='banner'><h2 style='margin:0'>OQ Base Industries — PIQuick Risk Dashboard</h2></div>",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    "<p style='text-align:center; font-size:16px; color:#e0e0e0;'>Real-time Industrial Monitoring | Oman</p>",
-    unsafe_allow_html=True,
-)
+st.markdown("<div class='banner'><h2 style='margin:0'>PIQuick — Industrial Risk Dashboard (OQBI Oman)</h2></div>", unsafe_allow_html=True)
+st.markdown("Enter daily readings. Use sliders for quick input and number boxes for precise overrides. The number box value is used for analysis.")
+
 st.divider()
 
 # ----------------------------
@@ -86,26 +41,24 @@ st.divider()
 # ----------------------------
 tab_input, tab_results, tab_charts = st.tabs(["📝 Input", "📋 Results", "📊 Charts & Export"])
 
-days = 5  # you can adjust this if needed
+days = 5  # fixed 5-day example (you can change this number if needed)
 
-# ----------------------------
-# Parameter Input Function
-# ----------------------------
+# utility function to make inputs for a parameter
 def param_inputs(label, slider_min, slider_max, slider_step, num_default, num_step, group_key):
-    col_a, col_b = st.columns([1, 1])
+    col_a, col_b = st.columns([1,1])
     with col_a:
-        s = st.slider(f"{label} (quick adjust)", slider_min, slider_max, num_default, slider_step, key=f"{group_key}_slider")
+        s = st.slider(f"{label} (quick) — {group_key}", slider_min, slider_max, num_default, slider_step, key=f"{group_key}_slider")
     with col_b:
-        n = st.number_input(f"{label} (precise value)", value=float(num_default), step=num_step, format="%.2f", key=f"{group_key}_num")
+        n = st.number_input(f"{label} (precise) — {group_key}", value=float(num_default), step=num_step, format="%.2f", key=f"{group_key}_num")
+    # final value uses the number_input (precise). Slider is for quick tuning/visual.
     return float(n)
 
 # ----------------------------
 # INPUT TAB
 # ----------------------------
 with tab_input:
-    st.header("Input Data — Process Sections")
-
-    # Core process
+    st.header("Input Data (sections)")
+    # Section: Core process
     st.subheader("Core Process Parameters")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
     core_values = {"Pressure": [], "Temperature": [], "Flow": []}
@@ -120,7 +73,7 @@ with tab_input:
         st.markdown("---")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Mechanical
+    # Section: Mechanical
     st.subheader("Mechanical Parameters")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
     vib_values = []
@@ -129,10 +82,11 @@ with tab_input:
         vib_values.append(v)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Oil & Chemical
+    # Section: Oil & Chemical
     st.subheader("Oil & Chemical Parameters")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-    oil_values, chem_values = [], []
+    oil_values = []
+    chem_values = []
     for i in range(days):
         oil = param_inputs("Oil Condition (index)", 0.0, 10.0, 0.1, 2.0, 0.1, f"day{i+1}_oil")
         chem = param_inputs("Chemical Conc. (%)", 0.0, 100.0, 0.1, 5.0, 0.1, f"day{i+1}_chem")
@@ -140,10 +94,11 @@ with tab_input:
         chem_values.append(chem)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Energy & Environment
+    # Section: Energy & Environment
     st.subheader("Energy & Environment")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-    energy_values, emis_values = [], []
+    energy_values = []
+    emis_values = []
     for i in range(days):
         energy = param_inputs("Energy Consumption (kWh)", 0.0, 1000.0, 1.0, 100.0, 1.0, f"day{i+1}_energy")
         emis = param_inputs("Emissions (ppm)", 0.0, 1000.0, 1.0, 50.0, 1.0, f"day{i+1}_emissions")
@@ -151,12 +106,13 @@ with tab_input:
         emis_values.append(emis)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Alerts
+    # Section: Alerts
     st.subheader("Alerts / Safety Trips")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
     alerts = [st.selectbox(f"Day {i+1} Alert / Trip", ["No", "Yes"], key=f"alert_{i}") for i in range(days)]
     st.markdown("</div>", unsafe_allow_html=True)
-    st.success("Inputs recorded — move to Results or Charts for insights.")
+
+    st.success("Inputs set. Switch to Results or Charts to analyze.")
 
 # ----------------------------
 # Risk logic
@@ -196,6 +152,7 @@ with tab_results:
         for i in range(len(df))
     ]
 
+    # color function
     def color_risk(val):
         if val == "High":
             return "background-color: red; color: white; font-weight: bold;"
@@ -205,6 +162,7 @@ with tab_results:
 
     st.dataframe(df.style.applymap(color_risk, subset=["Risk"]), height=360)
 
+    # summary box
     high = df[df["Risk"] == "High"]["Day"].tolist()
     if high:
         st.markdown(f"<div class='summary-box'><b>⚠️ High risk on:</b> {', '.join(high)}</div>", unsafe_allow_html=True)
@@ -212,19 +170,41 @@ with tab_results:
         st.markdown("<div class='summary-box'>✅ No high-risk days detected.</div>", unsafe_allow_html=True)
 
 # ----------------------------
-# CHARTS TAB
+# CHARTS & EXPORT TAB
 # ----------------------------
 with tab_charts:
     st.header("Charts & Export")
+    st.markdown("Interactive trends for all parameters")
+
+    # small controls
+    show_temp = st.checkbox("Show Temperature", value=True)
+    show_pressure = st.checkbox("Show Pressure", value=True)
+    show_flow = st.checkbox("Show Flow", value=True)
+    show_vibration = st.checkbox("Show Vibration", value=False)
+    show_oil = st.checkbox("Show Oil Condition", value=False)
+    show_chem = st.checkbox("Show Chemical Conc.", value=False)
+    show_energy = st.checkbox("Show Energy", value=False)
+    show_emis = st.checkbox("Show Emissions", value=False)
 
     fig, ax = plt.subplots(figsize=(11, 5))
     x = df["Day"]
+    if show_temp:
+        ax.plot(x, df["Temperature"], marker="o", label="Temperature (°C)", color="red", linewidth=2)
+    if show_pressure:
+        ax.plot(x, df["Pressure"], marker="s", label="Pressure (bar)", color="blue", linewidth=2)
+    if show_flow:
+        ax.plot(x, df["Flow"], marker="^", label="Flow (L/min)", color="green", linewidth=2)
+    if show_vibration:
+        ax.plot(x, df["Vibration"], marker="x", label="Vibration (Hz)", color="purple", linewidth=2)
+    if show_oil:
+        ax.plot(x, df["Oil Condition"], marker="d", label="Oil Condition", color="brown", linewidth=2)
+    if show_chem:
+        ax.plot(x, df["Chemical Concentration"], marker="*", label="Chemical Conc.", color="magenta", linewidth=2)
+    if show_energy:
+        ax.plot(x, df["Energy Consumption"], marker="h", label="Energy (kWh)", color="cyan", linewidth=2)
+    if show_emis:
+        ax.plot(x, df["Emissions"], marker="p", label="Emissions (ppm)", color="gray", linewidth=2)
 
-    ax.plot(x, df["Temperature"], marker="o", label="Temperature (°C)", linewidth=2, color="tomato")
-    ax.plot(x, df["Pressure"], marker="s", label="Pressure (bar)", linewidth=2, color="royalblue")
-    ax.plot(x, df["Flow"], marker="^", label="Flow (L/min)", linewidth=2, color="limegreen")
-
-    ax.set_facecolor("#f9f9f9")
     ax.set_xlabel("Day")
     ax.set_ylabel("Value")
     ax.set_title("Process Parameter Trends")
@@ -232,5 +212,6 @@ with tab_charts:
     ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
     st.pyplot(fig)
 
+    # CSV export
     csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button("📥 Download CSV", data=csv, file_name="PIQuick_Report.csv", mime="text/csv")
+    st.download_button("📥 Download CSV", data=csv, file_name="piquick_report.csv", mime="text/csv")
