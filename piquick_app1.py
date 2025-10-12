@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # ----------------------------
-# Page + Styles
+# PAGE + STYLE
 # ----------------------------
 st.set_page_config(page_title="PIQuick - OQBI", layout="wide")
 st.markdown(
@@ -24,47 +24,74 @@ st.markdown(
 )
 
 # ----------------------------
-# Header with logo (online)
+# HEADER WITH LOGO
 # ----------------------------
-logo_url = "https://upload.wikimedia.org/wikipedia/commons/9/97/OQ_logo.png"  # online link
+logo_url = "https://upload.wikimedia.org/wikipedia/commons/9/97/OQ_logo.png"
 st.markdown("<div style='text-align:center; margin-bottom:8px;'>", unsafe_allow_html=True)
 st.image(logo_url, width=120)
 st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div class='banner'><h2 style='margin:0'>PIQuick — Industrial Risk Dashboard (OQBI Oman)</h2></div>", unsafe_allow_html=True)
-st.markdown("Enter daily readings. Use sliders for quick input and number boxes for precise overrides. The number box value is used for analysis.")
+st.markdown("Enter daily readings. Use sliders for quick input and number boxes for precise override. Both stay synchronized for clarity.")
 
 st.divider()
 
 # ----------------------------
-# Tabs
+# TABS
 # ----------------------------
 tab_input, tab_results, tab_charts = st.tabs(["📝 Input", "📋 Results", "📊 Charts & Export"])
+days = 5  # number of days shown
 
-days = 5  # fixed 5-day example (you can change this number if needed)
+# ----------------------------
+# SYNC FUNCTION FOR SLIDER + NUMBER INPUT
+# ----------------------------
+def param_inputs(label, slider_min, slider_max, slider_step, default_value, num_step, key):
+    # session state sync
+    if f"{key}_value" not in st.session_state:
+        st.session_state[f"{key}_value"] = default_value
 
-# utility function to make inputs for a parameter
-def param_inputs(label, slider_min, slider_max, slider_step, num_default, num_step, group_key):
-    col_a, col_b = st.columns([1,1])
-    with col_a:
-        s = st.slider(f"{label} (quick) — {group_key}", slider_min, slider_max, num_default, slider_step, key=f"{group_key}_slider")
-    with col_b:
-        n = st.number_input(f"{label} (precise) — {group_key}", value=float(num_default), step=num_step, format="%.2f", key=f"{group_key}_num")
-    # final value uses the number_input (precise). Slider is for quick tuning/visual.
-    return float(n)
+    col1, col2 = st.columns([1, 1])
+
+    slider_val = col1.slider(
+        f"{label} (quick adjust)",
+        min_value=slider_min,
+        max_value=slider_max,
+        step=slider_step,
+        value=st.session_state[f"{key}_value"],
+        key=f"{key}_slider",
+    )
+
+    num_val = col2.number_input(
+        f"{label} (precise input)",
+        min_value=slider_min,
+        max_value=slider_max,
+        step=num_step,
+        value=st.session_state[f"{key}_value"],
+        key=f"{key}_num",
+        format="%.2f",
+    )
+
+    # keep synced
+    if slider_val != st.session_state[f"{key}_value"]:
+        st.session_state[f"{key}_value"] = slider_val
+    elif num_val != st.session_state[f"{key}_value"]:
+        st.session_state[f"{key}_value"] = num_val
+
+    return st.session_state[f"{key}_value"]
 
 # ----------------------------
 # INPUT TAB
 # ----------------------------
 with tab_input:
-    st.header("Input Data (sections)")
-    # Section: Core process
+    st.header("Input Data Sections")
+
+    # --- Core Process ---
     st.subheader("Core Process Parameters")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
     core_values = {"Pressure": [], "Temperature": [], "Flow": []}
     for i in range(days):
         st.markdown(f"**Day {i+1}**")
-        p = param_inputs("Pressure (bar)", 0.0, 20.0, 0.1, 10.0, 0.1, f"day{i+1}_pressure")
+        p = param_inputs("Pressure (bar)", 0.0, 25.0, 0.1, 10.0, 0.1, f"day{i+1}_pressure")
         t = param_inputs("Temperature (°C)", 0.0, 150.0, 0.5, 65.0, 0.1, f"day{i+1}_temp")
         f = param_inputs("Flow (L/min)", 0.0, 1000.0, 1.0, 200.0, 1.0, f"day{i+1}_flow")
         core_values["Pressure"].append(p)
@@ -73,7 +100,7 @@ with tab_input:
         st.markdown("---")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Section: Mechanical
+    # --- Mechanical ---
     st.subheader("Mechanical Parameters")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
     vib_values = []
@@ -82,11 +109,10 @@ with tab_input:
         vib_values.append(v)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Section: Oil & Chemical
+    # --- Oil & Chemical ---
     st.subheader("Oil & Chemical Parameters")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-    oil_values = []
-    chem_values = []
+    oil_values, chem_values = [], []
     for i in range(days):
         oil = param_inputs("Oil Condition (index)", 0.0, 10.0, 0.1, 2.0, 0.1, f"day{i+1}_oil")
         chem = param_inputs("Chemical Conc. (%)", 0.0, 100.0, 0.1, 5.0, 0.1, f"day{i+1}_chem")
@@ -94,11 +120,10 @@ with tab_input:
         chem_values.append(chem)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Section: Energy & Environment
+    # --- Energy & Environment ---
     st.subheader("Energy & Environment")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-    energy_values = []
-    emis_values = []
+    energy_values, emis_values = [], []
     for i in range(days):
         energy = param_inputs("Energy Consumption (kWh)", 0.0, 1000.0, 1.0, 100.0, 1.0, f"day{i+1}_energy")
         emis = param_inputs("Emissions (ppm)", 0.0, 1000.0, 1.0, 50.0, 1.0, f"day{i+1}_emissions")
@@ -106,16 +131,16 @@ with tab_input:
         emis_values.append(emis)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Section: Alerts
+    # --- Alerts ---
     st.subheader("Alerts / Safety Trips")
     st.markdown("<div class='section-box'>", unsafe_allow_html=True)
     alerts = [st.selectbox(f"Day {i+1} Alert / Trip", ["No", "Yes"], key=f"alert_{i}") for i in range(days)]
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.success("Inputs set. Switch to Results or Charts to analyze.")
+    st.success("✅ Inputs synchronized and saved. Switch to Results or Charts tab to analyze.")
 
 # ----------------------------
-# Risk logic
+# RISK LOGIC
 # ----------------------------
 def classify_risk(p, t, f, v, oil, chem, energy, em, alert):
     if alert == "Yes" or t > 75 or p > 11 or v > 70 or oil > 5 or chem > 10 or energy > 150 or em > 100:
@@ -152,58 +177,44 @@ with tab_results:
         for i in range(len(df))
     ]
 
-    # color function
     def color_risk(val):
-        if val == "High":
-            return "background-color: red; color: white; font-weight: bold;"
-        if val == "Medium":
-            return "background-color: orange; color: white; font-weight: bold;"
-        return "background-color: green; color: white; font-weight: bold;"
+        if val == "High": return "background-color:red;color:white;font-weight:bold;"
+        if val == "Medium": return "background-color:orange;color:white;font-weight:bold;"
+        return "background-color:green;color:white;font-weight:bold;"
 
-    st.dataframe(df.style.applymap(color_risk, subset=["Risk"]), height=360)
+    st.dataframe(df.style.applymap(color_risk, subset=["Risk"]), height=380)
 
-    # summary box
     high = df[df["Risk"] == "High"]["Day"].tolist()
     if high:
-        st.markdown(f"<div class='summary-box'><b>⚠️ High risk on:</b> {', '.join(high)}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='summary-box'><b>⚠️ High risk detected on:</b> {', '.join(high)}</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='summary-box'>✅ No high-risk days detected.</div>", unsafe_allow_html=True)
 
 # ----------------------------
-# CHARTS & EXPORT TAB
+# CHARTS TAB
 # ----------------------------
 with tab_charts:
     st.header("Charts & Export")
-    st.markdown("Interactive trends for all parameters")
 
-    # small controls
-    show_temp = st.checkbox("Show Temperature", value=True)
-    show_pressure = st.checkbox("Show Pressure", value=True)
-    show_flow = st.checkbox("Show Flow", value=True)
-    show_vibration = st.checkbox("Show Vibration", value=False)
-    show_oil = st.checkbox("Show Oil Condition", value=False)
-    show_chem = st.checkbox("Show Chemical Conc.", value=False)
-    show_energy = st.checkbox("Show Energy", value=False)
-    show_emis = st.checkbox("Show Emissions", value=False)
+    show_temp = st.checkbox("Temperature", value=True)
+    show_pressure = st.checkbox("Pressure", value=True)
+    show_flow = st.checkbox("Flow", value=True)
+    show_vibration = st.checkbox("Vibration", value=False)
+    show_oil = st.checkbox("Oil Condition", value=False)
+    show_chem = st.checkbox("Chemical Conc.", value=False)
+    show_energy = st.checkbox("Energy", value=False)
+    show_emis = st.checkbox("Emissions", value=False)
 
     fig, ax = plt.subplots(figsize=(11, 5))
     x = df["Day"]
-    if show_temp:
-        ax.plot(x, df["Temperature"], marker="o", label="Temperature (°C)", color="red", linewidth=2)
-    if show_pressure:
-        ax.plot(x, df["Pressure"], marker="s", label="Pressure (bar)", color="blue", linewidth=2)
-    if show_flow:
-        ax.plot(x, df["Flow"], marker="^", label="Flow (L/min)", color="green", linewidth=2)
-    if show_vibration:
-        ax.plot(x, df["Vibration"], marker="x", label="Vibration (Hz)", color="purple", linewidth=2)
-    if show_oil:
-        ax.plot(x, df["Oil Condition"], marker="d", label="Oil Condition", color="brown", linewidth=2)
-    if show_chem:
-        ax.plot(x, df["Chemical Concentration"], marker="*", label="Chemical Conc.", color="magenta", linewidth=2)
-    if show_energy:
-        ax.plot(x, df["Energy Consumption"], marker="h", label="Energy (kWh)", color="cyan", linewidth=2)
-    if show_emis:
-        ax.plot(x, df["Emissions"], marker="p", label="Emissions (ppm)", color="gray", linewidth=2)
+    if show_temp: ax.plot(x, df["Temperature"], marker="o", label="Temperature (°C)", color="red", linewidth=2)
+    if show_pressure: ax.plot(x, df["Pressure"], marker="s", label="Pressure (bar)", color="blue", linewidth=2)
+    if show_flow: ax.plot(x, df["Flow"], marker="^", label="Flow (L/min)", color="green", linewidth=2)
+    if show_vibration: ax.plot(x, df["Vibration"], marker="x", label="Vibration (Hz)", color="purple", linewidth=2)
+    if show_oil: ax.plot(x, df["Oil Condition"], marker="d", label="Oil Condition", color="brown", linewidth=2)
+    if show_chem: ax.plot(x, df["Chemical Concentration"], marker="*", label="Chemical Conc.", color="magenta", linewidth=2)
+    if show_energy: ax.plot(x, df["Energy Consumption"], marker="h", label="Energy (kWh)", color="cyan", linewidth=2)
+    if show_emis: ax.plot(x, df["Emissions"], marker="p", label="Emissions (ppm)", color="gray", linewidth=2)
 
     ax.set_xlabel("Day")
     ax.set_ylabel("Value")
@@ -212,6 +223,5 @@ with tab_charts:
     ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
     st.pyplot(fig)
 
-    # CSV export
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button("📥 Download CSV", data=csv, file_name="piquick_report.csv", mime="text/csv")
