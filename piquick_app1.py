@@ -11,22 +11,47 @@ st.set_page_config(
 )
 
 # ----------------------------
-# Header with Logo and Title
+# Custom CSS for Background & Colors
 # ----------------------------
 st.markdown("""
-<div style="background-color:#003366;padding:15px;border-radius:10px;text-align:center;">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/9/97/OQ_logo.png" 
-         alt="OQBI Oman" width="100">
-    <h1 style="color:white;">OQBI Oman - PIQuick Risk Dashboard</h1>
-</div>
+<style>
+/* Set light blue background */
+body, .main, .block-container {
+    background-color: #d0e7f9;
+    color: #003366;
+}
+
+/* Heading color - light orange */
+h1, h2, h3, h4 {
+    color: #ffb366;
+}
+
+/* Card style for summary */
+.summary-card {
+    background-color: #ffffff90;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+/* Table header */
+.stDataFrame thead th {
+    background-color: #ffb366;
+    color: #003366;
+}
+</style>
 """, unsafe_allow_html=True)
 
+# ----------------------------
+# Header
+# ----------------------------
+st.markdown("<h1 style='text-align:center;'>OQBI Oman - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
 st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 
 # ----------------------------
 # Input Section
 # ----------------------------
-st.markdown("<h3 style='color:darkblue;'>📝 Input Daily Process Data (5 Days)</h3>", unsafe_allow_html=True)
+st.markdown("<h3>📝 Input Daily Process Data (5 Days)</h3>", unsafe_allow_html=True)
 
 days = 5
 
@@ -41,7 +66,7 @@ emissions = []
 alerts = []
 
 for i in range(days):
-    st.markdown(f"### Day {i+1}")
+    st.markdown(f"<h4>Day {i+1}</h4>", unsafe_allow_html=True)
     pressure.append(st.number_input(f"Pressure (bar) - Day {i+1}", value=10.0, step=0.1, min_value=0.0, max_value=20.0))
     temperature.append(st.number_input(f"Temperature (°C) - Day {i+1}", value=65.0, step=0.1, min_value=0.0, max_value=150.0))
     flow.append(st.number_input(f"Flow (L/min) - Day {i+1}", value=200, step=1, min_value=0, max_value=1000))
@@ -55,7 +80,7 @@ for i in range(days):
 # ----------------------------
 # Dynamic Illustration
 # ----------------------------
-st.markdown("<h3 style='color:darkgreen;'>💡 System Health Status</h3>", unsafe_allow_html=True)
+st.markdown("<h3>💡 System Health Status</h3>", unsafe_allow_html=True)
 
 def get_illustration(temp, pressure):
     if temp > 75 or pressure > 11:
@@ -68,7 +93,7 @@ def get_illustration(temp, pressure):
 illustrations = [get_illustration(temperature[i], pressure[i]) for i in range(days)]
 
 for i in range(days):
-    st.write(f"Day {i+1}: {illustrations[i]}")
+    st.markdown(f"<p>Day {i+1}: {illustrations[i]}</p>", unsafe_allow_html=True)
 
 # ----------------------------
 # Risk Classification
@@ -117,7 +142,7 @@ if st.button("Analyze Data"):
     high_risk_days = df[df['Risk'] == "High"]['Day'].tolist()
     summary_text = "✅ All readings normal" if not high_risk_days else f"⚠️ High Risk on: {', '.join(high_risk_days)}"
     st.markdown(f"""
-    <div style='background-color:#f0f8ff;padding:15px;border-radius:10px;margin-top:10px'>
+    <div class='summary-card'>
         <h4>Summary of Critical Events</h4>
         <pre>{summary_text}</pre>
     </div>
@@ -128,7 +153,7 @@ if st.button("Analyze Data"):
     ax.plot(df['Day'], df['Temperature'], marker='o', label='Temperature (°C)', color='red', linewidth=2)
     ax.plot(df['Day'], df['Pressure'], marker='s', label='Pressure (bar)', color='blue', linewidth=2)
     ax.plot(df['Day'], df['Flow'], marker='^', label='Flow (L/min)', color='green', linewidth=2)
-    ax.set_title("Process Parameter Trends", fontsize=16, color='darkblue')
+    ax.set_title("Process Parameter Trends", fontsize=16, color='#ffb366')
     ax.set_xlabel("Day")
     ax.set_ylabel("Value")
     ax.grid(True, linestyle='--', alpha=0.5)
