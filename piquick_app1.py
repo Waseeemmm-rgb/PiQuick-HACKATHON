@@ -63,7 +63,6 @@ oil_condition = []
 chemical_concentration = []
 energy_consumption = []
 emissions = []
-alerts = []
 
 for i in range(days):
     st.markdown(f"<h4>Day {i+1}</h4>", unsafe_allow_html=True)
@@ -75,7 +74,6 @@ for i in range(days):
     chemical_concentration.append(st.number_input(f"Chemical Concentration (%) - Day {i+1}", value=5.0, step=0.1, min_value=0.0, max_value=100.0))
     energy_consumption.append(st.number_input(f"Energy Consumption (kWh) - Day {i+1}", value=100, step=1, min_value=0, max_value=1000))
     emissions.append(st.number_input(f"Emissions (ppm) - Day {i+1}", value=50, step=1, min_value=0, max_value=1000))
-    alerts.append(st.selectbox(f"Alert / Safety Trip - Day {i+1}", ['No', 'Yes']))
 
 # ----------------------------
 # Dynamic Illustration
@@ -98,8 +96,8 @@ for i in range(days):
 # ----------------------------
 # Risk Classification
 # ----------------------------
-def classify_risk(p, t, f, v, oil, chem, energy, em, alert):
-    if alert == "Yes" or t > 75 or p > 11 or v > 70 or oil > 5 or chem > 10 or energy > 150 or em > 100:
+def classify_risk(p, t, f, v, oil, chem, energy, em):
+    if t > 75 or p > 11 or v > 70 or oil > 5 or chem > 10 or energy > 150 or em > 100:
         return "High"
     elif t > 65 or p > 10 or v > 60 or oil > 3 or chem > 7 or energy > 120 or em > 80:
         return "Medium"
@@ -117,13 +115,12 @@ if st.button("Analyze Data"):
         "Chemical Concentration": chemical_concentration,
         "Energy Consumption": energy_consumption,
         "Emissions": emissions,
-        "Alert": alerts
     })
 
     df['Risk'] = [classify_risk(
         pressure[i], temperature[i], flow[i], vibration[i],
         oil_condition[i], chemical_concentration[i],
-        energy_consumption[i], emissions[i], alerts[i]
+        energy_consumption[i], emissions[i]
     ) for i in range(days)]
 
     # Display dataframe with colors
@@ -148,11 +145,16 @@ if st.button("Analyze Data"):
     </div>
     """, unsafe_allow_html=True)
 
-    # Trend chart
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df['Day'], df['Temperature'], marker='o', label='Temperature (°C)', color='red', linewidth=2)
-    ax.plot(df['Day'], df['Pressure'], marker='s', label='Pressure (bar)', color='blue', linewidth=2)
-    ax.plot(df['Day'], df['Flow'], marker='^', label='Flow (L/min)', color='green', linewidth=2)
+    # Trend chart - all numeric parameters
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(df['Day'], df['Temperature'], marker='o', label='Temperature (°C)', linewidth=2)
+    ax.plot(df['Day'], df['Pressure'], marker='s', label='Pressure (bar)', linewidth=2)
+    ax.plot(df['Day'], df['Flow'], marker='^', label='Flow (L/min)', linewidth=2)
+    ax.plot(df['Day'], df['Vibration'], marker='v', label='Vibration (Hz)', linewidth=2)
+    ax.plot(df['Day'], df['Oil Condition'], marker='d', label='Oil Condition', linewidth=2)
+    ax.plot(df['Day'], df['Chemical Concentration'], marker='h', label='Chemical Concentration (%)', linewidth=2)
+    ax.plot(df['Day'], df['Energy Consumption'], marker='x', label='Energy Consumption (kWh)', linewidth=2)
+    ax.plot(df['Day'], df['Emissions'], marker='*', label='Emissions (ppm)', linewidth=2)
     ax.set_title("Process Parameter Trends", fontsize=16, color='#ffb366')
     ax.set_xlabel("Day")
     ax.set_ylabel("Value")
