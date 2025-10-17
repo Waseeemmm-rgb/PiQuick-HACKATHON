@@ -108,14 +108,14 @@ st.markdown("""
 | Parameter | Unit | Lower Limit | Upper Limit |
 | :--- | :--- | :--- | :--- |
 | Pressure | bar | $20.0$ | $50.0$ |
-| Temperature | $^{\circ}\text{C}$ | $200.0$ | $300.0$ |
-| Flow | $\text{Kg/hour}$ | $1.0$ | $100.0$ |
-| Vibration | $\text{Hz}$ | $10.0$ | $80.0$ |
+| Temperature | $^{\\circ}\\text{C}$ | $200.0$ | $300.0$ |
+| Flow | $\\text{Kg/hour}$ | $1.0$ | $100.0$ |
+| Vibration | $\\text{Hz}$ | $10.0$ | $80.0$ |
 | Oil Condition | Index | $20.0$ | $80.0$ |
-| Chemical Concentration | $\%$ | $30.0$ | $90.0$ |
-| Energy Consumption | $\text{GJ}$ | $25.0$ | $50.0$ |
-| Emissions | $\%$ | $1.0$ | $30.0$ |
-| Production Unit | $\text{ton/day}$ | $50.0$ | $500.0$ |
+| Chemical Concentration | $\\%$ | $30.0$ | $90.0$ |
+| Energy Consumption | $\\text{GJ}$ | $25.0$ | $50.0$ |
+| Emissions | $\\%$ | $1.0$ | $30.0$ |
+| Production Unit | $\\text{ton/day}$ | $50.0$ | $500.0$ |
 """)
 
 # ----------------------------
@@ -154,8 +154,19 @@ if st.button("Analyze and Generate Report", type="primary"):
     
     st.subheader("📊 Full Process Data Summary")
     
-    # Display plain table without any color
-    st.dataframe(df, height=300, use_container_width=True)
+    # ----------------------------
+    # ✅ Highlight out-of-range values in red cells
+    def highlight_out_of_range(val, param):
+        lower, upper = limits[param]
+        if val < lower or val > upper:
+            return 'background-color: #ffcccc; font-weight: bold; color: #660000;'
+        return ''
+    
+    styled_df = df.style.apply(lambda col: [
+        highlight_out_of_range(v, col.name) if col.name in limits else '' for v in col
+    ], axis=0)
+
+    st.dataframe(styled_df, height=300, use_container_width=True)
 
     # ----------------------------
     # Summary
