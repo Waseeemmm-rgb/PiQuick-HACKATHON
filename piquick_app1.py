@@ -126,7 +126,8 @@ for param, label in params.items():
         )
         
         # Live feedback and update session state
-        color = "red" if not (lower <= val <= upper) else "#003366" # Deep blue for normal, red for alert
+        # --- FIX: Use "green" for in-range values instead of #003366 to ensure visibility ---
+        color = "red" if not (lower <= val <= upper) else "green" 
         font_weight = "bold" if color == "red" else "normal"
         status_icon = "🔥 High Risk" if color == "red" else "✅ Normal"
         
@@ -161,7 +162,7 @@ if st.button("Analyze and Generate Report", type="primary"):
         if pd.isna(val) or not isinstance(val, (int, float)):
              return ""
         if lower <= val <= upper:
-            # === MODIFIED: Green background for in-range values ===
+            # Green background for in-range values
             return "background-color:#ccffcc; color:#006600; font-weight:normal; text-align:center;"
         else:
             # Highlight out-of-range values in red
