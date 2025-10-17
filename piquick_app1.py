@@ -49,9 +49,6 @@ input[type=number] {
 if 'analyzed_days' not in st.session_state:
     st.session_state.analyzed_days = []
 
-if 'selected_day_clean' not in st.session_state:
-    st.session_state.selected_day_clean = "Day 1"
-
 days = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"]
 params = {
     "pressure": "Pressure (bar)",
@@ -92,13 +89,8 @@ with col1:
     st.markdown("<h1><span style='color:#003366;'>OQBI Oman</span> - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
     st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 with col2:
-    selected_day = st.selectbox(
-        "📅 Select Day", 
-        dropdown_options, 
-        key="day_selector",
-        index=days.index(st.session_state.selected_day_clean)
-    )
-st.session_state.selected_day_clean = selected_day.replace(" ✅", "")
+    selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector")
+selected_day_clean = selected_day.replace(" ✅", "")
 
 # ----------------------------
 # Parameter Limits Reference Table
@@ -121,17 +113,23 @@ st.markdown("""
 # ----------------------------
 # Input for Selected Day with ranges
 # ----------------------------
-st.markdown(f"<h3>📝 Enter Process Data for {st.session_state.selected_day_clean}</h3>", unsafe_allow_html=True)
+st.markdown(f"<h3>📝 Enter Process Data for {selected_day_clean}</h3>", unsafe_allow_html=True)
 st.divider()
 cols = st.columns(3)
 i = 0
 for param, label in params.items():
     lower, upper = limits[param]
     display_label = f"{label} (Range: {lower} - {upper})"
-    current_value = st.session_state.params_data[st.session_state.selected_day_clean][param]
+    current_value = st.session_state.params_data[selected_day_clean][param]
     with cols[i % 3]:
-        val = st.number_input(display_label, value=current_value, step=1.0, key=f"{param}_{st.session_state.selected_day_clean}", format="%.2f")
-        st.session_state.params_data[st.session_state.selected_day_clean][param] = val
+        val = st.number_input(display_label, value=current_value, step=1.0, key=f"{param}_{selected_day_clean}", format="%.2f")
+        val_float = float(val)
+        is_normal = lower <= val_float <= upper
+        color = "darkgreen" if is_normal else "red"
+        font_weight = "bold" if not is_normal else "normal"
+        status_icon = "✅ Normal Range" if is_normal else "🔥 Risk Detected"
+        st.markdown(f"<p style='color:{color}; font-weight:{font_weight}; margin-top:-10px; font-size:0.9em;'>Status: {status_icon}</p>", unsafe_allow_html=True)
+        st.session_state.params_data[selected_day_clean][param] = val
     i += 1
 st.divider()
 
@@ -139,8 +137,8 @@ st.divider()
 # Analyze and Visualize
 # ----------------------------
 if st.button("Analyze and Generate Report", type="primary"):
-    if st.session_state.selected_day_clean not in st.session_state.analyzed_days:
-        st.session_state.analyzed_days.append(st.session_state.selected_day_clean)
+    if selected_day_clean not in st.session_state.analyzed_days:
+        st.session_state.analyzed_days.append(selected_day_clean)
         st.rerun()
 
     df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days])
