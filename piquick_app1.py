@@ -81,6 +81,12 @@ if 'params_data' not in st.session_state:
     }
 
 # ----------------------------
+# Preserve selected day across reruns
+# ----------------------------
+if 'selected_day_clean' not in st.session_state:
+    st.session_state.selected_day_clean = days[0]  # default Day 1
+
+# ----------------------------
 # Header UI
 # ----------------------------
 dropdown_options = [f"{d} ✅" if d in st.session_state.analyzed_days else d for d in days]
@@ -89,11 +95,8 @@ with col1:
     st.markdown("<h1><span style='color:#003366;'>OQBI Oman</span> - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
     st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 with col2:
-    selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector")
-
-# ----------------------------
-# Fix: Store selected day in session state to prevent reset
-# ----------------------------
+    selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector",
+                                index=days.index(st.session_state.selected_day_clean))
 st.session_state.selected_day_clean = selected_day.replace(" ✅", "")
 selected_day_clean = st.session_state.selected_day_clean
 
@@ -144,6 +147,7 @@ st.divider()
 if st.button("Analyze and Generate Report", type="primary"):
     if selected_day_clean not in st.session_state.analyzed_days:
         st.session_state.analyzed_days.append(selected_day_clean)
+        st.session_state.selected_day_clean = selected_day_clean  # <-- keep current day
         st.rerun()
 
     df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days])
