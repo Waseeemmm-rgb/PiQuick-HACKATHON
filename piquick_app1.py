@@ -3,210 +3,167 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # ----------------------------
-# PAGE CONFIG
+# Page Setup
 # ----------------------------
 st.set_page_config(page_title="PIQuick Dashboard - OQBI Oman", layout="wide")
 
 # ----------------------------
-# PARAMETER RANGES & UNITS
-# ----------------------------
-recommended_limits = {
-    "pressure": (20.0, 50.0),                 # bar
-    "temperature": (200.0, 300.0),           # °C
-    "flow": (1.0, 100.0),                    # Kg/hour
-    "vibration": (10.0, 80.0),               # Hz
-    "oil_condition": (20.0, 80.0),           # index
-    "chemical_concentration": (30.0, 90.0),  # %
-    "energy_consumption": (25.0, 50.0),      # GJ
-    "emissions": (1.0, 30.0),                # % (updated)
-    "production_unit": (50.0, 500.0)         # ton/day
-}
-
-units = {
-    "pressure": "bar",
-    "temperature": "°C",
-    "flow": "Kg/hour",
-    "vibration": "Hz",
-    "oil_condition": "index",
-    "chemical_concentration": "%",
-    "energy_consumption": "GJ",
-    "emissions": "%",
-    "production_unit": "ton/day"
-}
-
-ALLOWED_MIN = -1e6
-ALLOWED_MAX = 1e6
-
-# ----------------------------
-# STYLES
+# Custom CSS for Background & Colors
 # ----------------------------
 st.markdown("""
 <style>
 body, .main, .block-container {
-    background-color: #d7ecff;
-    color: #002b5b;
+    background-color: #d0e7f9;
+    color: #003366;
 }
-h1 span.oq {
-    color: #ff9933;
-    font-weight: 700;
-}
-.stDataFrame th {
-    background-color: #ff9933 !important;
-    color: white !important;
+h1, h2, h3, h4 {
+    color: #ffb366;
     font-weight: bold;
 }
-.stDataFrame tbody tr:nth-child(even) {background-color: #f2f7ff !important;}
-.stDataFrame tbody tr:hover {background-color: #ffe8cc !important;}
-input[type=number] {
-    border-radius: 8px;
-    padding: 6px;
-    font-weight: 700;
-    font-size: 15px;
-}
-.suggestion-card {
-    background-color: #ffffff;
-    padding: 12px;
-    border-radius: 8px;
-    box-shadow: 0 0 8px rgba(0,0,0,0.08);
+.summary-card {
+    background-color: #ffffffb3;
+    padding: 15px;
+    border-radius: 10px;
     margin-top: 10px;
+}
+.stDataFrame thead th {
+    background-color: #ffb366;
+    color: #003366;
+}
+.day-selector {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+}
+input[type=number] {
+    font-weight: bold;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# HEADER
+# Header
 # ----------------------------
-st.markdown("<h1 style='text-align:center;'><span class='oq'>OQBI</span> Oman — PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
-st.write("Monitor process parameters, detect anomalies, and visualize trends. Inputs change color (green = safe, red = out-of-range).")
+col1, col2 = st.columns([5, 1])
+with col1:
+    st.markdown("<h1 style='text-align:center;'>"
+                "<span style='color:#ff8000; font-weight:bold;'>OQBI Oman</span> - PIQuick Risk Dashboard</h1>",
+                unsafe_allow_html=True)
+with col2:
+    selected_day = st.selectbox("📅 Select Day", ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"], key="day_selector")
+
+st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 
 # ----------------------------
-# HELPERS
+# Parameters and Limits
 # ----------------------------
-def classify(value, param):
-    low, high = recommended_limits[param]
-    if value < low:
+params = {
+    "pressure": "Pressure (bar)",
+    "temperature": "Temperature (°C)",
+    "flow": "Flow (Kg/hour)",
+    "vibration": "Vibration (Hz)",
+    "oil_condition": "Oil Condition Index",
+    "chemical_concentration": "Chemical Concentration (%)",
+    "energy_consumption": "Energy Consumption (GJ)",
+    "emissions": "Emissions (%)",
+    "production_unit": "Production Unit (ton/day)"
+}
+
+limits = {
+    "pressure": (20.0, 50.0),
+    "temperature": (200.0, 300.0),
+    "flow": (1.0, 100.0),
+    "vibration": (10.0, 80.0),
+    "oil_condition": (20.0, 80.0),
+    "chemical_concentration": (30.0, 90.0),
+    "energy_consumption": (25.0, 50.0),
+    "emissions": (1.0, 30.0),
+    "production_unit": (50.0, 500.0)
+}
+
+days = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"]
+params_data = {day: {} for day in days}
+
+# ----------------------------
+# Input for Selected Day
+# ----------------------------
+st.markdown(f"<h3>📝 Enter Process Data for {selected_day}</h3>", unsafe_allow_html=True)
+
+cols = st.columns(3)
+i = 0
+
+for param, label in params.items():
+    lower, upper = limits[param]
+    with cols[i % 3]:
+        val = st.number_input(f"{label} ({selected_day})", value=float((lower + upper)/2), step=1.0, key=f"{param}_{selected_day}")
+        color = "green" if lower <= val <= upper else "red"
+        st.markdown(f"<p style='color:{color}; font-weight:bold;'>Value: {val}</p>", unsafe_allow_html=True)
+        params_data[selected_day][param] = val
+    i += 1
+
+# ----------------------------
+# System Health Table & Risk
+# ----------------------------
+def classify_risk(value, param):
+    lower, upper = limits[param]
+    if value < lower:
         return "Low"
-    elif value > high:
+    elif value > upper:
         return "High"
     else:
         return "Normal"
 
-def emoji(value, param):
-    low, high = recommended_limits[param]
-    if value < low:
-        return "⚠️"
-    elif value > high:
-        return "🔥"
-    else:
-        return "✅"
+if st.button("Analyze Data"):
+    # Combine data from all days into DataFrame
+    df = pd.DataFrame([
+        {"Day": d, **params_data[d]} for d in days
+    ])
 
-def color_for_risk(risk):
-    if risk == "High":
-        return "#e74c3c"  # red
-    elif risk == "Low":
-        return "#ffcc00"  # yellow
-    else:
-        return "#2ecc71"  # green
+    # Add risk columns
+    for param in params.keys():
+        df[param + "_risk"] = df[param].apply(lambda x: classify_risk(x, param))
 
-# ----------------------------
-# INPUTS (5 days)
-# ----------------------------
-st.markdown("## 📝 Input Daily Process Data")
-days = 5
-params = {k: [] for k in recommended_limits.keys()}
+    # Apply color styles for risk
+    def color_risk(val):
+        if val == "High":
+            color = "red"
+        elif val == "Low":
+            color = "orange"
+        else:
+            color = "green"
+        return f"background-color:{color}; color:white; font-weight:bold; text-align:center;"
 
-for d in range(days):
-    st.markdown(f"### 📅 Day {d+1}")
-    for key, (low, high) in recommended_limits.items():
-        default_val = (low + high) / 2.0
-        label = f"{key.replace('_',' ').title()} ({units[key]}) — recommended {low}–{high}"
-        val = st.number_input(
-            label,
-            value=float(default_val),
-            min_value=float(ALLOWED_MIN),
-            max_value=float(ALLOWED_MAX),
-            step=1.0,
-            key=f"{key}_{d}"
-        )
-        color = "#2ecc71" if (low <= val <= high) else "#e74c3c"
-        st.markdown(f"""
-        <style>
-        div[data-testid="stNumberInput"][key="{key}_{d}"] input {{
-            border: 2px solid {color} !important;
-            color: {color} !important;
-            font-weight: 700 !important;
-        }}
-        </style>
-        """, unsafe_allow_html=True)
-        params[key].append(val)
+    # Styled table
+    st.subheader("📊 Process Data & Risk Levels")
+    styled_df = df.style.map(color_risk, subset=[p + "_risk" for p in params.keys()])
+    st.dataframe(styled_df, height=500)
 
-st.markdown("---")
+    # Summary
+    summary = ""
+    for param in params.keys():
+        high_days = df[df[param+"_risk"]=="High"]["Day"].tolist()
+        low_days = df[df[param+"_risk"]=="Low"]["Day"].tolist()
+        if high_days:
+            summary += f"🔥 {param.replace('_',' ').title()} High: {', '.join(high_days)}\n"
+        if low_days:
+            summary += f"⚠️ {param.replace('_',' ').title()} Low: {', '.join(low_days)}\n"
+    if not summary:
+        summary = "✅ All parameters within normal range."
 
-# ----------------------------
-# ANALYZE + COMBINED RISK TABLE
-# ----------------------------
-if st.button("🔍 Analyze Data"):
-    df = pd.DataFrame(params)
-    df.insert(0, "Day", [f"Day {i+1}" for i in range(days)])
+    st.markdown(f"""
+    <div class='summary-card'>
+    <h4>Summary of Critical Events</h4>
+    <pre>{summary}</pre>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Risk and emoji processing
-    display_df = pd.DataFrame()
-    display_df["Day"] = df["Day"]
-
-    for param in recommended_limits.keys():
-        risk_col = []
-        for val in df[param]:
-            r = classify(val, param)
-            e = emoji(val, param)
-            risk_col.append(f"{val:.1f} {units[param]} {e}")
-        display_df[param.replace('_', ' ').title()] = risk_col
-
-    # Apply background color based on risk
-    def style_combined(s):
-        styled = []
-        for val in s:
-            if isinstance(val, str):
-                if "🔥" in val:
-                    styled.append("background-color: #e74c3c; color:white; font-weight:700;")
-                elif "⚠️" in val:
-                    styled.append("background-color: #ffcc00; color:black; font-weight:700;")
-                else:
-                    styled.append("background-color: #2ecc71; color:white; font-weight:700;")
-            else:
-                styled.append("")
-        return styled
-
-    st.subheader("📊 Process Data with Risk Coloring")
-    st.dataframe(display_df.style.apply(style_combined, axis=0), use_container_width=True, height=300)
-
-    # ----------------------------
-    # Suggestions
-    # ----------------------------
-    suggestions = []
-    for d in range(days):
-        for key, (low, high) in recommended_limits.items():
-            val = params[key][d]
-            if val < low:
-                suggestions.append(f"⚠️ {key.replace('_',' ').title()} ({units[key]}) on Day {d+1} is below range ({val} < {low}) → Increase value.")
-            elif val > high:
-                suggestions.append(f"🔥 {key.replace('_',' ').title()} ({units[key]}) on Day {d+1} exceeds range ({val} > {high}) → Decrease value.")
-    if not suggestions:
-        st.markdown("<div class='suggestion-card'><b>✅ All parameters within range.</b></div>", unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='suggestion-card'><h4>💬 Suggestions</h4></div>", unsafe_allow_html=True)
-        st.code("\n".join(suggestions), language="text")
-
-    # ----------------------------
-    # Trend Chart
-    # ----------------------------
-    st.subheader("📈 Process Parameter Trends")
+    # Trend Graph
     fig, ax = plt.subplots(figsize=(12, 6))
-    x = [f"Day {i+1}" for i in range(days)]
-    for key in recommended_limits.keys():
-        ax.plot(x, df[key], marker='o', linewidth=2, label=f"{key.replace('_',' ').title()} ({units[key]})")
+    for param in params.keys():
+        ax.plot(df["Day"], df[param], marker="o", label=params[param], linewidth=2)
+    ax.set_title("Process Parameter Trends", fontsize=16, color="#ffb366")
     ax.set_xlabel("Day")
     ax.set_ylabel("Value")
-    ax.set_title("Process Parameters Over Days")
-    ax.grid(alpha=0.3)
-    ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.legend()
     st.pyplot(fig)
