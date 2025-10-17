@@ -89,8 +89,15 @@ with col1:
     st.markdown("<h1><span style='color:#003366;'>OQBI Oman</span> - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
     st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 with col2:
-    selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector")
+    selected_day_clean = st.session_state.get('selected_day_clean', days[0])
+    selected_day = st.selectbox(
+        "📅 Select Day", 
+        dropdown_options, 
+        key="day_selector",
+        index=days.index(selected_day_clean)  # <-- FIX: preserves selected day
+    )
 selected_day_clean = selected_day.replace(" ✅", "")
+st.session_state['selected_day_clean'] = selected_day_clean
 
 # ----------------------------
 # Parameter Limits Reference Table
@@ -123,12 +130,6 @@ for param, label in params.items():
     current_value = st.session_state.params_data[selected_day_clean][param]
     with cols[i % 3]:
         val = st.number_input(display_label, value=current_value, step=1.0, key=f"{param}_{selected_day_clean}", format="%.2f")
-        val_float = float(val)
-        is_normal = lower <= val_float <= upper
-        color = "darkgreen" if is_normal else "red"
-        font_weight = "bold" if not is_normal else "normal"
-        status_icon = "✅ Normal Range" if is_normal else "🔥 Risk Detected"
-        st.markdown(f"<p style='color:{color}; font-weight:{font_weight}; margin-top:-10px; font-size:0.9em;'>Status: {status_icon}</p>", unsafe_allow_html=True)
         st.session_state.params_data[selected_day_clean][param] = val
     i += 1
 st.divider()
@@ -137,6 +138,7 @@ st.divider()
 # Analyze and Visualize
 # ----------------------------
 if st.button("Analyze and Generate Report", type="primary"):
+    # Mark day as analyzed
     if selected_day_clean not in st.session_state.analyzed_days:
         st.session_state.analyzed_days.append(selected_day_clean)
         st.rerun()
@@ -144,8 +146,8 @@ if st.button("Analyze and Generate Report", type="primary"):
     df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days])
     
     st.subheader("📊 Full Process Data Summary")
-    
-    # Display plain table without any color
+
+    # Display dataframe without color classification
     st.dataframe(df, height=300, use_container_width=True)
 
     # ----------------------------
