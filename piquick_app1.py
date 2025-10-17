@@ -92,8 +92,8 @@ if 'selected_day_clean' not in st.session_state:
 dropdown_options = [f"{d} ✅" if d in st.session_state.analyzed_days else d for d in days]
 col1, col2 = st.columns([5, 1])
 with col1:
-    st.markdown("<h1><span style='color:#003366;'>OQBI Oman</span> - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
-    st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
+    st.markdown("<h1>🚀 <span style='color:#ff8000;'>OQBI</span> Oman - PIQuick Risk Dashboard ⚙️📊</h1>", unsafe_allow_html=True)
+    st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily. 🛢️💡")
 with col2:
     selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector",
                                 index=days.index(st.session_state.selected_day_clean))
