@@ -37,8 +37,12 @@ input[type=number] {
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# Parameters and Limits
+# Header with dropdown
 # ----------------------------
+if 'analyzed_days' not in st.session_state:
+    st.session_state.analyzed_days = []
+
+days = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"]
 params = {
     "pressure": "Pressure (bar)",
     "temperature": "Temperature (°C)",
@@ -63,76 +67,70 @@ limits = {
     "production_unit": (50.0, 500.0)
 }
 
-days = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"]
-params_data = {day: {} for day in days}
+if 'params_data' not in st.session_state:
+    st.session_state.params_data = {day: {param: (limits[param][0]+limits[param][1])/2 for param in params} for day in days}
 
-# ----------------------------
-# Dropdown for selecting day
-# ----------------------------
+# Dropdown with tick marks
+dropdown_options = [f"{d} ✅" if d in st.session_state.analyzed_days else d for d in days]
 col1, col2 = st.columns([5,1])
 with col1:
     st.markdown("<h1 style='text-align:center;'><span style='color:#ff8000; font-weight:bold;'>OQBI Oman</span> - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
 with col2:
-    # Red dot for currently selected day
-    dropdown_options = [f"🔴 {d}" if d == st.session_state.get("current_day", days[0]) else d for d in days]
     selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector")
-    selected_day_clean = selected_day.replace("🔴 ", "")
-    st.session_state["current_day"] = selected_day_clean
 
+selected_day_clean = selected_day.replace(" ✅","")
 st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 
 # ----------------------------
-# Input for Selected Day
+# Input for Selected Day with ranges
 # ----------------------------
 st.markdown(f"<h3>📝 Enter Process Data for {selected_day_clean}</h3>", unsafe_allow_html=True)
 cols = st.columns(3)
 i = 0
-
 for param, label in params.items():
     lower, upper = limits[param]
+    display_label = f"{label} [{lower}-{upper}]"
     with cols[i % 3]:
-        val = st.number_input(f"{label} ({selected_day_clean}) [Range: {lower}-{upper}]", value=float((lower+upper)/2), step=1.0, key=f"{param}_{selected_day_clean}")
-        color = "green" if lower <= val <= upper else "red" if val > upper else "orange"
-        st.markdown(f"<p style='color:{color}; font-weight:bold;'>Value: {val}</p>", unsafe_allow_html=True)
-        params_data[selected_day_clean][param] = val
-    i +=1
+        val = st.number_input(display_label, 
+                              value=st.session_state.params_data[selected_day_clean][param],
+                              step=1.0,
+                              key=f"{param}_{selected_day_clean}")
+        # Live feedback color
+        color = "green" if lower <= val <= upper else "red"
+        font_weight = "bold" if color=="red" else "normal"
+        st.markdown(f"<p style='color:{color}; font-weight:{font_weight};'>Value: {val}</p>", unsafe_allow_html=True)
+        st.session_state.params_data[selected_day_clean][param] = val
+    i += 1
 
 # ----------------------------
 # Risk Classification
 # ----------------------------
 def classify_risk(value, param):
     lower, upper = limits[param]
-    if value < lower:
-        return "Low"
-    elif value > upper:
+    if value < lower or value > upper:
         return "High"
     else:
         return "Normal"
 
-# ----------------------------
-# Analyze Button
-# ----------------------------
 if st.button("Analyze Data"):
-    # Combine data from all days into DataFrame
-    df = pd.DataFrame([{"Day": d, **params_data[d]} for d in days])
+    # Mark day as analyzed
+    if selected_day_clean not in st.session_state.analyzed_days:
+        st.session_state.analyzed_days.append(selected_day_clean)
 
-    # Add risk columns
-    for param in params.keys():
-        df[param + "_risk"] = df[param].apply(lambda x: classify_risk(x, param))
+    # Combine all days into DataFrame
+    df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days ])
 
     # ----------------------------
-    # Styled DataFrame
-    # ----------------------------
+    # Color cells based on range
     def style_cells(val, param):
         lower, upper = limits[param]
         if lower <= val <= upper:
-            return "background-color:green; color:white; text-align:center; font-weight:normal;"
-        elif val < lower:
-            return "background-color:orange; color:white; text-align:center; font-weight:bold;"
+            return "color:black; font-weight:normal; text-align:center;"
         else:
-            return "background-color:red; color:white; text-align:center; font-weight:bold;"
+            return "color:red; font-weight:bold; text-align:center;"
 
-    styled_df = df.style
+    # Apply styling for all parameter columns
+    styled_df = df.style.applymap(lambda v: style_cells(v, "pressure"), subset=["pressure"])
     for param in params.keys():
         styled_df = styled_df.applymap(lambda v: style_cells(v, param), subset=[param])
 
@@ -140,16 +138,16 @@ if st.button("Analyze Data"):
     st.dataframe(styled_df, height=500)
 
     # ----------------------------
-    # Summary of Critical Events
-    # ----------------------------
+    # Summary
     summary = ""
     for param in params.keys():
-        high_days = df[df[param+"_risk"]=="High"]["Day"].tolist()
-        low_days = df[df[param+"_risk"]=="Low"]["Day"].tolist()
-        if high_days:
-            summary += f"🔥 {param.replace('_',' ').title()} High: {', '.join(high_days)}\n"
-        if low_days:
-            summary += f"⚠️ {param.replace('_',' ').title()} Low: {', '.join(low_days)}\n"
+        lower, upper = limits[param]
+        for d in days:
+            val = st.session_state.params_data[d][param]
+            if val < lower:
+                summary += f"⚠️ {param} Low on {d}\n"
+            elif val > upper:
+                summary += f"🔥 {param} High on {d}\n"
     if not summary:
         summary = "✅ All parameters within normal range."
 
@@ -161,9 +159,8 @@ if st.button("Analyze Data"):
     """, unsafe_allow_html=True)
 
     # ----------------------------
-    # Trend Graph
-    # ----------------------------
-    fig, ax = plt.subplots(figsize=(12,6))
+    # Trend Graph for all days
+    fig, ax = plt.subplots(figsize=(12, 6))
     for param in params.keys():
         ax.plot(df["Day"], df[param], marker="o", label=params[param], linewidth=2)
     ax.set_title("Process Parameter Trends", fontsize=16, color="#ffb366")
