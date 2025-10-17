@@ -15,26 +15,19 @@ st.set_page_config(
 # ----------------------------
 st.markdown("""
 <style>
-/* Set light blue background */
 body, .main, .block-container {
     background-color: #d0e7f9;
     color: #003366;
 }
-
-/* Heading color - light orange */
 h1, h2, h3, h4 {
     color: #ffb366;
 }
-
-/* Card style for summary */
 .summary-card {
     background-color: #ffffff90;
     padding: 15px;
     border-radius: 10px;
     margin-top: 10px;
 }
-
-/* Table header */
 .stDataFrame thead th {
     background-color: #ffb366;
     color: #003366;
@@ -65,68 +58,65 @@ energy_consumption = []
 emissions = []
 production_unit = []
 
-# Parameter ranges
-param_ranges = {
-    "Pressure": (20, 50),  # bar
-    "Temperature": (200, 300),  # Celsius
-    "Flow": (1, 100),  # Kg/hour
-    "Vibration": (10, 80),  # Hz
-    "Oil Condition": (20, 80),  # Index
-    "Chemical Concentration": (30, 90),  # %
-    "Energy Consumption": (25, 50),  # GJ
-    "Emissions": (1, 100),  # ppm
-    "Production Unit": (50, 500)  # ton/day
+# Parameter limits
+limits = {
+    "pressure": (20.0, 50.0),
+    "temperature": (200.0, 300.0),
+    "flow": (1.0, 100.0),
+    "vibration": (10.0, 80.0),
+    "oil_condition": (20.0, 80.0),
+    "chemical_concentration": (30.0, 90.0),
+    "energy_consumption": (25.0, 50.0),
+    "emissions": (1.0, 100.0),
+    "production_unit": (50.0, 500.0)
 }
 
 for i in range(days):
     st.markdown(f"<h4>Day {i+1}</h4>", unsafe_allow_html=True)
-    pressure.append(st.number_input(f"Pressure (bar) - Day {i+1}", value=35.0, step=1, min_value=0.0, max_value=100.0))
-    temperature.append(st.number_input(f"Temperature (°C) - Day {i+1}", value=250.0, step=1, min_value=0.0, max_value=500.0))
-    flow.append(st.number_input(f"Flow (Kg/hour) - Day {i+1}", value=50.0, step=1, min_value=0.0, max_value=200.0))
-    vibration.append(st.number_input(f"Vibration (Hz) - Day {i+1}", value=40.0, step=1, min_value=0.0, max_value=200.0))
-    oil_condition.append(st.number_input(f"Oil Condition Index - Day {i+1}", value=50.0, step=1, min_value=0.0, max_value=100.0))
-    chemical_concentration.append(st.number_input(f"Chemical Concentration (%) - Day {i+1}", value=60.0, step=1, min_value=0.0, max_value=100.0))
-    energy_consumption.append(st.number_input(f"Energy Consumption (GJ) - Day {i+1}", value=35.0, step=1, min_value=0.0, max_value=100.0))
-    emissions.append(st.number_input(f"Emissions (ppm) - Day {i+1}", value=50.0, step=1, min_value=0.0, max_value=200.0))
-    production_unit.append(st.number_input(f"Production Unit (ton/day) - Day {i+1}", value=250.0, step=1, min_value=0.0, max_value=1000.0))
+    pressure.append(st.number_input(f"Pressure (bar) - Day {i+1}", value=35.0, step=1.0, min_value=0.0, max_value=100.0))
+    temperature.append(st.number_input(f"Temperature (°C) - Day {i+1}", value=250.0, step=1.0, min_value=0.0, max_value=500.0))
+    flow.append(st.number_input(f"Flow (Kg/hour) - Day {i+1}", value=50.0, step=1.0, min_value=0.0, max_value=200.0))
+    vibration.append(st.number_input(f"Vibration (Hz) - Day {i+1}", value=40.0, step=1.0, min_value=0.0, max_value=200.0))
+    oil_condition.append(st.number_input(f"Oil Condition Index - Day {i+1}", value=50.0, step=1.0, min_value=0.0, max_value=100.0))
+    chemical_concentration.append(st.number_input(f"Chemical Concentration (%) - Day {i+1}", value=60.0, step=1.0, min_value=0.0, max_value=100.0))
+    energy_consumption.append(st.number_input(f"Energy Consumption (GJ) - Day {i+1}", value=35.0, step=1.0, min_value=0.0, max_value=100.0))
+    emissions.append(st.number_input(f"Emissions (ppm) - Day {i+1}", value=50.0, step=1.0, min_value=0.0, max_value=200.0))
+    production_unit.append(st.number_input(f"Production Unit (ton/day) - Day {i+1}", value=250.0, step=1.0, min_value=0.0, max_value=1000.0))
 
 # ----------------------------
-# System Health Status
+# System Health Illustration
 # ----------------------------
 st.markdown("<h3>💡 System Health Status</h3>", unsafe_allow_html=True)
 
-def get_health_status(value, lower, upper):
+def get_system_health(value, param):
+    lower, upper = limits[param]
     if value < lower:
-        return "🔴 Low"
+        return "⚠️ Low"
     elif value > upper:
         return "🔥 High"
     else:
         return "✅ Normal"
 
-# Display illustrations for each day
 for i in range(days):
-    st.markdown(f"""
-    <p>
-    Day {i+1}: 
-    Pressure: {get_health_status(pressure[i], *param_ranges['Pressure'])}, 
-    Temperature: {get_health_status(temperature[i], *param_ranges['Temperature'])}, 
-    Flow: {get_health_status(flow[i], *param_ranges['Flow'])}, 
-    Vibration: {get_health_status(vibration[i], *param_ranges['Vibration'])}, 
-    Oil Condition: {get_health_status(oil_condition[i], *param_ranges['Oil Condition'])}, 
-    Chemical: {get_health_status(chemical_concentration[i], *param_ranges['Chemical Concentration'])}, 
-    Energy: {get_health_status(energy_consumption[i], *param_ranges['Energy Consumption'])}, 
-    Emissions: {get_health_status(emissions[i], *param_ranges['Emissions'])}, 
-    Production: {get_health_status(production_unit[i], *param_ranges['Production Unit'])}
-    </p>
-    """, unsafe_allow_html=True)
+    st.markdown(f"<b>Day {i+1} Status:</b>", unsafe_allow_html=True)
+    st.write(f"Pressure: {get_system_health(pressure[i],'pressure')}, "
+             f"Temperature: {get_system_health(temperature[i],'temperature')}, "
+             f"Flow: {get_system_health(flow[i],'flow')}, "
+             f"Vibration: {get_system_health(vibration[i],'vibration')}, "
+             f"Oil Condition: {get_system_health(oil_condition[i],'oil_condition')}, "
+             f"Chemical Conc.: {get_system_health(chemical_concentration[i],'chemical_concentration')}, "
+             f"Energy: {get_system_health(energy_consumption[i],'energy_consumption')}, "
+             f"Emissions: {get_system_health(emissions[i],'emissions')}, "
+             f"Production: {get_system_health(production_unit[i],'production_unit')}")
 
 # ----------------------------
 # Risk Classification
 # ----------------------------
-def classify_risk(value, lower, upper):
-    if value < lower:
+def classify_risk(val, param):
+    lower, upper = limits[param]
+    if val < lower:
         return "Low"
-    elif value > upper:
+    elif val > upper:
         return "High"
     else:
         return "Normal"
@@ -134,61 +124,53 @@ def classify_risk(value, lower, upper):
 if st.button("Analyze Data"):
     df = pd.DataFrame({
         "Day": [f"Day {i+1}" for i in range(days)],
-        "Pressure (bar)": pressure,
-        "Temperature (°C)": temperature,
-        "Flow (Kg/hour)": flow,
-        "Vibration (Hz)": vibration,
+        "Pressure": pressure,
+        "Temperature": temperature,
+        "Flow": flow,
+        "Vibration": vibration,
         "Oil Condition": oil_condition,
-        "Chemical Concentration (%)": chemical_concentration,
-        "Energy Consumption (GJ)": energy_consumption,
-        "Emissions (ppm)": emissions,
-        "Production Unit (ton/day)": production_unit
+        "Chemical Concentration": chemical_concentration,
+        "Energy Consumption": energy_consumption,
+        "Emissions": emissions,
+        "Production Unit": production_unit
     })
 
-    # Apply risk classification
-    for col, (lower, upper) in param_ranges.items():
-        df[col] = [classify_risk(df[col][i], lower, upper) for i in range(days)]
+    # Apply risk classification for each parameter
+    for param in limits.keys():
+        df[param + " Risk"] = df[param].apply(lambda x: classify_risk(x, param))
 
-    # Display dataframe
-    st.subheader("📊 Process Data and Risk Levels")
-    st.dataframe(df, height=350)
+    st.subheader("📊 Process Data & Risk Levels")
+    st.dataframe(df, height=400)
 
-    # Summary of critical events
-    summary_text = ""
-    for col in param_ranges.keys():
-        high_days = [df['Day'][i] for i in range(days) if df[col][i]=="High"]
-        low_days = [df['Day'][i] for i in range(days) if df[col][i]=="Low"]
+    # Summary of high/low risk days
+    summary = ""
+    for param in limits.keys():
+        high_days = df[df[param + " Risk"]=="High"]['Day'].tolist()
+        low_days = df[df[param + " Risk"]=="Low"]['Day'].tolist()
         if high_days:
-            summary_text += f"🔥 {col} High: {', '.join(high_days)}\n"
+            summary += f"🔥 {param} High: {', '.join(high_days)}\n"
         if low_days:
-            summary_text += f"🔴 {col} Low: {', '.join(low_days)}\n"
-    if not summary_text:
-        summary_text = "✅ All readings normal"
+            summary += f"⚠️ {param} Low: {', '.join(low_days)}\n"
+    if summary == "":
+        summary = "✅ All readings normal"
 
     st.markdown(f"""
     <div class='summary-card'>
         <h4>Summary of Critical Events</h4>
-        <pre>{summary_text}</pre>
+        <pre>{summary}</pre>
     </div>
     """, unsafe_allow_html=True)
 
-    # Plot all numeric parameters trends
+    # ----------------------------
+    # Trend Chart
+    # ----------------------------
     fig, ax = plt.subplots(figsize=(12,6))
-    ax.plot(range(1,days+1), pressure, marker='o', label='Pressure (bar)')
-    ax.plot(range(1,days+1), temperature, marker='s', label='Temperature (°C)')
-    ax.plot(range(1,days+1), flow, marker='^', label='Flow (Kg/hour)')
-    ax.plot(range(1,days+1), vibration, marker='v', label='Vibration (Hz)')
-    ax.plot(range(1,days+1), oil_condition, marker='d', label='Oil Condition')
-    ax.plot(range(1,days+1), chemical_concentration, marker='h', label='Chemical Concentration (%)')
-    ax.plot(range(1,days+1), energy_consumption, marker='x', label='Energy Consumption (GJ)')
-    ax.plot(range(1,days+1), emissions, marker='*', label='Emissions (ppm)')
-    ax.plot(range(1,days+1), production_unit, marker='p', label='Production Unit (ton/day)')
-
-    ax.set_xticks(range(1,days+1))
-    ax.set_xticklabels([f"Day {i}" for i in range(1,days+1)])
+    for param in ["Pressure","Temperature","Flow","Vibration","Oil Condition",
+                  "Chemical Concentration","Energy Consumption","Emissions","Production Unit"]:
+        ax.plot(df['Day'], df[param], marker='o', label=param, linewidth=2)
     ax.set_title("Process Parameter Trends", fontsize=16, color='#ffb366')
     ax.set_xlabel("Day")
-    ax.set_ylabel("Risk Status")
+    ax.set_ylabel("Value")
     ax.grid(True, linestyle='--', alpha=0.5)
     ax.legend()
     st.pyplot(fig)
