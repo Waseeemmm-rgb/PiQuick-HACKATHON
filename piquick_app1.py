@@ -137,7 +137,6 @@ st.divider()
 # Analyze and Visualize
 # ----------------------------
 if st.button("Analyze and Generate Report", type="primary"):
-    # Mark day as analyzed
     if selected_day_clean not in st.session_state.analyzed_days:
         st.session_state.analyzed_days.append(selected_day_clean)
         st.rerun()
@@ -145,24 +144,9 @@ if st.button("Analyze and Generate Report", type="primary"):
     df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days])
     
     st.subheader("📊 Full Process Data Summary")
-
-    # ----------------------------
-    # FIXED: Color the entire cell green if value is in range, red if out of range
-    def style_cells(val, param):
-        lower, upper = limits[param]
-        try:
-            val_float = float(val)
-        except:
-            return ""
-        if lower <= val_float <= upper:
-            return "background-color:#ccffcc; color:#006600; font-weight:normal; text-align:center;"
-        else:
-            return "background-color:#ff4d4d; color:white; font-weight:bold; text-align:center;"
-
-    styled_df = df.style
-    for param in params.keys():
-        styled_df = styled_df.applymap(lambda v: style_cells(v, param), subset=[param])
-    st.dataframe(styled_df, height=300, use_container_width=True)
+    
+    # Display plain table without any color
+    st.dataframe(df, height=300, use_container_width=True)
 
     # ----------------------------
     # Summary
