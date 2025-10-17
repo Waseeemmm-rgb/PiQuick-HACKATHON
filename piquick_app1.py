@@ -146,13 +146,14 @@ if st.button("Analyze and Generate Report", type="primary"):
     
     st.subheader("📊 Full Process Data Summary")
 
+    # ----------------------------
+    # FIXED: Color the entire cell green if value is in range, red if out of range
     def style_cells(val, param):
         lower, upper = limits[param]
         try:
             val_float = float(val)
         except:
             return ""
-        # FIXED: Inversion problem corrected for all parameters
         if lower <= val_float <= upper:
             return "background-color:#ccffcc; color:#006600; font-weight:normal; text-align:center;"
         else:
