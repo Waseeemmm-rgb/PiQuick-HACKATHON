@@ -126,10 +126,12 @@ for param, label in params.items():
         )
         
         # Live feedback and update session state
-        # --- FIX: Use "green" for in-range values instead of #003366 to ensure visibility ---
-        color = "red" if not (lower <= val <= upper) else "green" 
-        font_weight = "bold" if color == "red" else "normal"
-        status_icon = "🔥 High Risk" if color == "red" else "✅ Normal"
+        is_normal = lower <= val <= upper
+        
+        # Explicit color choices: Green for normal, Red for risk
+        color = "#008000" if is_normal else "#ff4d4d" # Dark Green vs Light Red
+        font_weight = "bold" if not is_normal else "normal"
+        status_icon = "🔥 High Risk" if not is_normal else "✅ Normal Range"
         
         st.markdown(f"<p style='color:{color}; font-weight:{font_weight}; margin-top:-10px; font-size: 0.9em;'>Status: {status_icon}</p>", unsafe_allow_html=True)
         
