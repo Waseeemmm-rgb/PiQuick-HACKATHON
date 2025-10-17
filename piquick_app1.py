@@ -127,7 +127,7 @@ for param, label in params.items():
         is_normal = lower <= val_float <= upper
         color = "darkgreen" if is_normal else "red"
         font_weight = "bold" if not is_normal else "normal"
-        status_icon = "✅ Normal Range" if is_normal else "🔥 High/Low Risk"
+        status_icon = "✅ Normal Range" if is_normal else "🔥 Risk Detected"
         st.markdown(f"<p style='color:{color}; font-weight:{font_weight}; margin-top:-10px; font-size:0.9em;'>Status: {status_icon}</p>", unsafe_allow_html=True)
         st.session_state.params_data[selected_day_clean][param] = val
     i += 1
