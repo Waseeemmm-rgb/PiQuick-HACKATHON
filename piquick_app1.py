@@ -48,7 +48,7 @@ st.markdown("<h3>📝 Input Daily Process Data (5 Days)</h3>", unsafe_allow_html
 
 days = 5
 
-# Parameter dictionary to store values
+# Parameter dictionary
 params = {
     "pressure": [],
     "temperature": [],
@@ -77,15 +77,15 @@ limits = {
 # Input loop
 for i in range(days):
     st.markdown(f"<h4>Day {i+1}</h4>", unsafe_allow_html=True)
-    params["pressure"].append(st.number_input(f"Pressure (bar) - Day {i+1}", value=35.0, step=1.0, min_value=0.0, max_value=100.0))
-    params["temperature"].append(st.number_input(f"Temperature (°C) - Day {i+1}", value=250.0, step=1.0, min_value=0.0, max_value=500.0))
-    params["flow"].append(st.number_input(f"Flow (Kg/hour) - Day {i+1}", value=50.0, step=1.0, min_value=0.0, max_value=200.0))
-    params["vibration"].append(st.number_input(f"Vibration (Hz) - Day {i+1}", value=40.0, step=1.0, min_value=0.0, max_value=200.0))
-    params["oil_condition"].append(st.number_input(f"Oil Condition Index - Day {i+1}", value=50.0, step=1.0, min_value=0.0, max_value=100.0))
-    params["chemical_concentration"].append(st.number_input(f"Chemical Concentration (%) - Day {i+1}", value=60.0, step=1.0, min_value=0.0, max_value=100.0))
-    params["energy_consumption"].append(st.number_input(f"Energy Consumption (GJ) - Day {i+1}", value=35.0, step=1.0, min_value=0.0, max_value=100.0))
-    params["emissions"].append(st.number_input(f"Emissions (ppm) - Day {i+1}", value=50.0, step=1.0, min_value=0.0, max_value=200.0))
-    params["production_unit"].append(st.number_input(f"Production Unit (ton/day) - Day {i+1}", value=250.0, step=1.0, min_value=0.0, max_value=1000.0))
+    params["pressure"].append(st.number_input(f"Pressure (bar) - Day {i+1}", value=35.0, step=1.0))
+    params["temperature"].append(st.number_input(f"Temperature (°C) - Day {i+1}", value=250.0, step=1.0))
+    params["flow"].append(st.number_input(f"Flow (Kg/hour) - Day {i+1}", value=50.0, step=1.0))
+    params["vibration"].append(st.number_input(f"Vibration (Hz) - Day {i+1}", value=40.0, step=1.0))
+    params["oil_condition"].append(st.number_input(f"Oil Condition Index - Day {i+1}", value=50.0, step=1.0))
+    params["chemical_concentration"].append(st.number_input(f"Chemical Concentration (%) - Day {i+1}", value=60.0, step=1.0))
+    params["energy_consumption"].append(st.number_input(f"Energy Consumption (GJ) - Day {i+1}", value=35.0, step=1.0))
+    params["emissions"].append(st.number_input(f"Emissions (ppm) - Day {i+1}", value=50.0, step=1.0))
+    params["production_unit"].append(st.number_input(f"Production Unit (ton/day) - Day {i+1}", value=250.0, step=1.0))
 
 # ----------------------------
 # System Health Illustration
@@ -108,4 +108,54 @@ for i in range(days):
 # ----------------------------
 # Risk Classification
 # ----------------------------
-def classif
+def classify_risk(value, param):
+    lower, upper = limits[param]
+    if value < lower:
+        return "Low"
+    elif value > upper:
+        return "High"
+    else:
+        return "Normal"
+
+if st.button("Analyze Data"):
+    df = pd.DataFrame(params)
+    df.insert(0, "Day", [f"Day {i+1}" for i in range(days)])
+
+    # Add risk columns
+    for param in params.keys():
+        df[param + "_risk"] = df[param].apply(lambda x: classify_risk(x, param))
+
+    st.subheader("📊 Process Data & Risk Levels")
+    st.dataframe(df, height=400)
+
+    # Summary of high/low risk days
+    summary = ""
+    for param in params.keys():
+        high_days = df[df[param+"_risk"]=="High"]['Day'].tolist()
+        low_days = df[df[param+"_risk"]=="Low"]['Day'].tolist()
+        if high_days:
+            summary += f"🔥 {param.replace('_',' ').title()} High: {', '.join(high_days)}\n"
+        if low_days:
+            summary += f"⚠️ {param.replace('_',' ').title()} Low: {', '.join(low_days)}\n"
+    if summary == "":
+        summary = "✅ All readings normal"
+
+    st.markdown(f"""
+    <div class='summary-card'>
+        <h4>Summary of Critical Events</h4>
+        <pre>{summary}</pre>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ----------------------------
+    # Trend Chart
+    # ----------------------------
+    fig, ax = plt.subplots(figsize=(12,6))
+    for param in params.keys():
+        ax.plot(df['Day'], df[param], marker='o', label=param.replace('_',' ').title(), linewidth=2)
+    ax.set_title("Process Parameter Trends", fontsize=16, color='#ffb366')
+    ax.set_xlabel("Day")
+    ax.set_ylabel("Value")
+    ax.grid(True, linestyle='--', alpha=0.5)
+    ax.legend()
+    st.pyplot(fig)
