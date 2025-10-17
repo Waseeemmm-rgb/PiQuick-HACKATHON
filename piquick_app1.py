@@ -11,47 +11,87 @@ st.set_page_config(
 )
 
 # ----------------------------
-# Custom CSS
+# Recommended parameter ranges (for display & scoring)
 # ----------------------------
-st.markdown("""
-<style>
-body, .main, .block-container {
-    background-color: #d0e7f9;
-    color: #003366;
+recommended_limits = {
+    "pressure": (20.0, 50.0),                 # bar
+    "temperature": (200.0, 300.0),           # °C
+    "flow": (1.0, 100.0),                    # Kg/hour (recommended)
+    "vibration": (10.0, 80.0),               # Hz
+    "oil_condition": (20.0, 80.0),           # index
+    "chemical_concentration": (30.0, 90.0),  # %
+    "energy_consumption": (25.0, 50.0),      # GJ
+    "emissions": (1.0, 100.0),               # ppm
+    "production_unit": (50.0, 500.0)         # ton/day
 }
-h1, h2, h3, h4 {
-    color: #003366;
-}
-.summary-card, .suggestion-card {
-    background-color: #ffffff;
-    padding: 15px;
-    border-radius: 10px;
-    margin-top: 10px;
-}
-.stDataFrame tbody tr th {
-    background-color: #ffb366;
-}
-.stDataFrame tbody tr td {
-    color: #003366;
-}
-</style>
-""", unsafe_allow_html=True)
+
+# To avoid blocking user from entering larger/smaller values,
+# we set the actual allowed min/max quite wide but we show the recommended range in label.
+ALLOWED_MIN = -1e6
+ALLOWED_MAX = 1e6
 
 # ----------------------------
-# Header
+# Styles / CSS
 # ----------------------------
-st.markdown("""
-<h1 style='text-align:center;'>
-<b><span style='color:#ffb366;'>OQBI</span></b> Oman - PIQuick Risk Dashboard
-</h1>
-""", unsafe_allow_html=True)
-st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
+st.markdown(
+    """
+    <style>
+    body, .main, .block-container { background-color: #d0e7f9; color: #003366; }
+    .summary-card, .suggestion-card { background-color: #ffffff; padding: 12px; border-radius: 8px; }
+    h1 span.oq { color: #ffb366; font-weight: 700; } /* OQ in orange and bold */
+    .risk-high { background-color: #ff4d4d !important; color: white !important; font-weight: bold; }
+    .risk-normal { background-color: #28a745 !important; color: white !important; font-weight: bold; }
+    .risk-low { background-color: #ffcc00 !important; color: black !important; font-weight: bold; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ----------------------------
-# Parameter Setup
+# Header (OQBI orange + bold)
 # ----------------------------
+st.markdown(
+    "<h1 style='text-align:center;'><span class='oq'>OQBI</span> Oman - PIQuick Risk Dashboard</h1>",
+    unsafe_allow_html=True,
+)
+st.write("Monitor daily process parameters, detect anomalies, and get quick suggestions.")
+
+# ----------------------------
+# Helper functions
+# ----------------------------
+def emoji_for_value(val, param_key):
+    low, high = recommended_limits[param_key]
+    if val < low:
+        return "⚠️"   # below recommended -> caution (low)
+    elif val > high:
+        return "🔥"   # above recommended -> danger (high)
+    else:
+        return "✅"   # within recommended -> normal
+
+def health_status_for_value(val, param_key):
+    low, high = recommended_limits[param_key]
+    if val < low:
+        return "Low"
+    elif val > high:
+        return "High"
+    else:
+        return "Normal"
+
+def risk_color_css(val):
+    # used for styling risk cells
+    if val == "High":
+        return "background-color: #ff4d4d; color: white; font-weight: bold;"
+    if val == "Normal":
+        return "background-color: #28a745; color: white; font-weight: bold;"
+    return "background-color: #ffcc00; color: black; font-weight: bold;"
+
+# ----------------------------
+# Inputs: collect numeric values for N days
+# ----------------------------
+st.markdown("<h3>📝 Input Daily Process Data (5 Days)</h3>", unsafe_allow_html=True)
 days = 5
 
+# initialize storage for inputs
 params = {
     "pressure": [],
     "temperature": [],
@@ -64,137 +104,102 @@ params = {
     "production_unit": []
 }
 
-limits = {
-    "pressure": (20.0, 50.0),
-    "temperature": (200.0, 300.0),
-    "flow": (1.0, 100.0),
-    "vibration": (10.0, 80.0),
-    "oil_condition": (20.0, 80.0),
-    "chemical_concentration": (30.0, 90.0),
-    "energy_consumption": (25.0, 50.0),
-    "emissions": (1.0, 100.0),
-    "production_unit": (50.0, 500.0)
-}
+# build inputs day by day
+for d in range(days):
+    st.markdown(f"### Day {d+1}")
+    # loop through recommended_limits keys to keep an order
+    for key in recommended_limits.keys():
+        rec_min, rec_max = recommended_limits[key]
+        # default set to middle of recommended range
+        default = float((rec_min + rec_max) / 2.0)
+        label = f"{key.replace('_',' ').title()} (recommended {rec_min}–{rec_max}) • max shown: {rec_max} {emoji_for_value(default,key)} — Day {d+1}"
+        # Use wide allowed range to not prevent entering values beyond recommended
+        val = st.number_input(label, value=default, min_value=float(ALLOWED_MIN), max_value=float(ALLOWED_MAX), step=1.0, key=f"{key}_{d}")
+        params[key].append(float(val))
 
-# Emoji helper for input labels
-def get_emoji(value, param):
-    low, high = limits[param]
-    if value < low:
-        return "⚠️"
-    elif value > high:
-        return "🔥"
-    else:
-        return "✅"
+st.markdown("---")
 
 # ----------------------------
-# Input Section
+# System Health Status table (show statuses per day, tabular)
 # ----------------------------
-st.markdown("<h3>📝 Input Daily Process Data (5 Days)</h3>", unsafe_allow_html=True)
+st.markdown("<h3>💡 System Health Status (table)</h3>", unsafe_allow_html=True)
+health_rows = []
+for d in range(days):
+    row = {"Day": f"Day {d+1}"}
+    for key in recommended_limits.keys():
+        val = params[key][d]
+        status = health_status_for_value(val, key)
+        emoji = emoji_for_value(val, key)
+        row[key.replace("_"," ").title()] = f"{status} {emoji}"
+    health_rows.append(row)
 
-for i in range(days):
-    st.markdown(f"<h4>Day {i+1}</h4>", unsafe_allow_html=True)
-    for param in params.keys():
-        min_val, max_val = limits[param]
-        default = (min_val + max_val) / 2
-        emoji = get_emoji(default, param)
-        params[param].append(st.number_input(
-            f"{param.replace('_',' ').title()} ({min_val}-{max_val}) {emoji} - Day {i+1}",
-            value=float(default),
-            min_value=float(min_val),
-            max_value=float(max_val),
-            step=1.0
-        ))
-
-# ----------------------------
-# System Health Status
-# ----------------------------
-st.markdown("<h3>💡 System Health Status</h3>", unsafe_allow_html=True)
-
-health_data = []
-for i in range(days):
-    day_status = {"Day": f"Day {i+1}"}
-    for param in params.keys():
-        val = params[param][i]
-        low, high = limits[param]
-        if val < low:
-            status = "Low ⚠️"
-        elif val > high:
-            status = "High 🔥"
-        else:
-            status = "Normal ✅"
-        day_status[param.replace("_"," ").title()] = status
-    health_data.append(day_status)
-
-df_health = pd.DataFrame(health_data)
+df_health = pd.DataFrame(health_rows)
 st.dataframe(df_health, height=200)
 
 # ----------------------------
-# Risk Classification
-# ----------------------------
-def classify_risk(value, param):
-    low, high = limits[param]
-    if value < low:
-        return "Low"
-    elif value > high:
-        return "High"
-    else:
-        return "Normal"
-
-# ----------------------------
-# Analyze Button
+# Analyze / Risk classification + colored table + suggestions
 # ----------------------------
 if st.button("Analyze Data"):
-    df = pd.DataFrame(params)
-    df.insert(0, "Day", [f"Day {i+1}" for i in range(days)])
+    # raw numeric dataframe
+    df_values = pd.DataFrame(params)
+    df_values.insert(0, "Day", [f"Day {i+1}" for i in range(days)])
 
-    # Risk columns
-    for param in params.keys():
-        df[param+"_risk"] = df[param].apply(lambda x: classify_risk(x, param))
+    # compute risk columns (Low / Normal / High)
+    for key in recommended_limits.keys():
+        risk_col = key + "_risk"
+        df_values[risk_col] = df_values[key].apply(lambda x: health_status_for_value(x, key))
 
-    # Color map for risks
-    def color_risk(val):
-        if val == "High":
-            return 'background-color: red; color:white; font-weight:bold;'
-        elif val == "Normal":
-            return 'background-color: green; color:white; font-weight:bold;'
-        else:
-            return 'background-color: yellow; color:black; font-weight:bold;'
+    # show colored risk columns with pandas Styler
+    risk_cols = [c for c in df_values.columns if c.endswith("_risk")]
 
-    st.subheader("📊 Process Data & Risk Levels")
-    st.dataframe(df.style.applymap(color_risk, subset=[col for col in df.columns if "_risk" in col]), height=400)
+    st.subheader("📊 Process Data & Risk Levels (values + risk cols)")
 
-    # ----------------------------
-    # Suggestion Panel
-    # ----------------------------
-    suggestions = ""
-    for i in range(days):
-        day = f"Day {i+1}"
-        for param in params.keys():
-            val = params[param][i]
-            low, high = limits[param]
-            if val < low:
-                suggestions += f"⚠️ {param.replace('_',' ').title()} on {day} is below minimum. Consider increasing it.\n"
-            elif val > high:
-                suggestions += f"🔥 {param.replace('_',' ').title()} on {day} is above maximum. Consider decreasing it.\n"
-    if suggestions == "":
-        suggestions = "✅ All parameters within normal range."
+    # First show raw numeric values
+    st.markdown("**Numeric values (raw inputs)**")
+    st.dataframe(df_values[[c for c in df_values.columns if not c.endswith("_risk")]], height=250)
 
-    st.markdown(f"""
-    <div class='suggestion-card'>
-        <h4>💡 Suggestions</h4>
-        <pre>{suggestions}</pre>
-    </div>
-    """, unsafe_allow_html=True)
+    # Then show risk table with color styling
+    st.markdown("**Risk classification (colored)**")
+    def apply_risk_styles(s):
+        return [risk_color_css(v) for v in s]
+
+    styled = df_values.style.apply(lambda col: apply_risk_styles(col) if col.name.endswith("_risk") else [""]*len(col), axis=0)
+    st.dataframe(styled, height=300)
 
     # ----------------------------
-    # Trend Chart
+    # Suggestions: produce concise per-day actionable suggestions
     # ----------------------------
+    suggestions = []
+    for d in range(days):
+        day_label = f"Day {d+1}"
+        for key in recommended_limits.keys():
+            val = params[key][d]
+            rec_min, rec_max = recommended_limits[key]
+            if val < rec_min:
+                suggestions.append(f"⚠️ {key.replace('_',' ').title()} on {day_label} is below recommended ({val} < {rec_min}). Suggest: increase.")
+            elif val > rec_max:
+                suggestions.append(f"🔥 {key.replace('_',' ').title()} on {day_label} is above recommended ({val} > {rec_max}). Suggest: decrease.")
+
+    if not suggestions:
+        suggestions_text = "✅ All parameters are within recommended ranges for all days."
+    else:
+        suggestions_text = "\n".join(suggestions)
+
+    st.markdown("<div class='suggestion-card'><h4>Suggestions</h4>", unsafe_allow_html=True)
+    st.code(suggestions_text)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ----------------------------
+    # Trend Chart for numeric values
+    # ----------------------------
+    st.subheader("📈 Process Parameter Trends")
     fig, ax = plt.subplots(figsize=(12,6))
-    for param in params.keys():
-        ax.plot(df['Day'], df[param], marker='o', label=param.replace('_',' ').title(), linewidth=2)
-    ax.set_title("Process Parameter Trends", fontsize=16, color='#ffb366')
+    x = [f"Day {i+1}" for i in range(days)]
+    for key in recommended_limits.keys():
+        ax.plot(x, df_values[key], marker='o', label=key.replace("_"," ").title(), linewidth=2)
+    ax.set_title("Process Parameter Trends", fontsize=16, color="#ffb366")
     ax.set_xlabel("Day")
     ax.set_ylabel("Value")
-    ax.grid(True, linestyle='--', alpha=0.5)
-    ax.legend()
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
     st.pyplot(fig)
