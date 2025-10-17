@@ -90,7 +90,12 @@ with col1:
     st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 with col2:
     selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector")
-selected_day_clean = selected_day.replace(" ✅", "")
+
+# ----------------------------
+# Fix: Store selected day in session state to prevent reset
+# ----------------------------
+st.session_state.selected_day_clean = selected_day.replace(" ✅", "")
+selected_day_clean = st.session_state.selected_day_clean
 
 # ----------------------------
 # Parameter Limits Reference Table
