@@ -49,6 +49,10 @@ input[type=number] {
 if 'analyzed_days' not in st.session_state:
     st.session_state.analyzed_days = []
 
+with col2:
+    selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector")
+
+
 days = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5"]
 params = {
     "pressure": "Pressure (bar)",
