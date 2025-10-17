@@ -13,31 +13,43 @@ st.set_page_config(page_title="PIQuick Dashboard - OQBI Oman", layout="wide")
 st.markdown("""
 <style>
 body, .main, .block-container {
-    background-color: #d0e7f9;
-    color: #003366;
+    /* Main background color for a light, professional look */
+    background-color: #f0f8ff; /* Light Azure */
+    color: #003366; /* Deep Blue for main text */
 }
 h1, h2, h3, h4 {
-    color: #ffb366;
+    /* Accent color for headers */
+    color: #ff8000; /* Vibrant Orange */
     font-weight: bold;
 }
 .summary-card {
-    background-color: #ffffffb3;
-    padding: 15px;
-    border-radius: 10px;
-    margin-top: 10px;
+    /* Slightly translucent white card for summaries */
+    background-color: #ffffffd0;
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 20px;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
 }
 .stDataFrame thead th {
-    background-color: #ffb366;
+    /* Header background color for the table */
+    background-color: #ffb366; /* Light Orange */
     color: #003366;
 }
 input[type=number] {
     font-weight: bold;
+    border-radius: 6px;
+}
+/* Ensure the selectbox reflects the page colors */
+.stSelectbox div[data-baseweb="select"] > div {
+    background-color: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #ccc;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# Header with dropdown
+# Initialization and Configuration Data
 # ----------------------------
 if 'analyzed_days' not in st.session_state:
     st.session_state.analyzed_days = []
@@ -67,105 +79,180 @@ limits = {
     "production_unit": (50.0, 500.0)
 }
 
+# Initialize session state data if not present
 if 'params_data' not in st.session_state:
-    st.session_state.params_data = {day: {param: (limits[param][0]+limits[param][1])/2 for param in params} for day in days}
+    st.session_state.params_data = {
+        day: {param: (limits[param][0] + limits[param][1]) / 2 for param in params}
+        for day in days
+    }
 
-# Dropdown with tick marks
+# ----------------------------
+# Header UI
+# ----------------------------
 dropdown_options = [f"{d} ✅" if d in st.session_state.analyzed_days else d for d in days]
-col1, col2 = st.columns([5,1])
+col1, col2 = st.columns([5, 1])
+
 with col1:
-    st.markdown("<h1 style='text-align:center;'><span style='color:#ff8000; font-weight:bold;'>OQBI Oman</span> - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<h1><span style='color:#003366;'>OQBI Oman</span> - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
+    st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 with col2:
     selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector")
 
-selected_day_clean = selected_day.replace(" ✅","")
-st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
+selected_day_clean = selected_day.replace(" ✅", "")
 
 # ----------------------------
 # Input for Selected Day with ranges
 # ----------------------------
 st.markdown(f"<h3>📝 Enter Process Data for {selected_day_clean}</h3>", unsafe_allow_html=True)
+st.divider()
+
 cols = st.columns(3)
 i = 0
 for param, label in params.items():
     lower, upper = limits[param]
-    display_label = f"{label} [{lower}-{upper}]"
+    display_label = f"{label} (Range: {lower} - {upper})"
+    
+    # Retrieve current value from session state
+    current_value = st.session_state.params_data[selected_day_clean][param]
+    
     with cols[i % 3]:
-        val = st.number_input(display_label, 
-                              value=st.session_state.params_data[selected_day_clean][param],
-                              step=1.0,
-                              key=f"{param}_{selected_day_clean}")
-        # Live feedback color
-        color = "green" if lower <= val <= upper else "red"
-        font_weight = "bold" if color=="red" else "normal"
-        st.markdown(f"<p style='color:{color}; font-weight:{font_weight};'>Value: {val}</p>", unsafe_allow_html=True)
+        # Input widget
+        val = st.number_input(
+            display_label, 
+            value=current_value,
+            step=1.0,
+            key=f"{param}_{selected_day_clean}",
+            format="%.2f"
+        )
+        
+        # Live feedback and update session state
+        color = "red" if not (lower <= val <= upper) else "#003366" # Deep blue for normal, red for alert
+        font_weight = "bold" if color == "red" else "normal"
+        status_icon = "🔥 High Risk" if color == "red" else "✅ Normal"
+        
+        st.markdown(f"<p style='color:{color}; font-weight:{font_weight}; margin-top:-10px; font-size: 0.9em;'>Status: {status_icon}</p>", unsafe_allow_html=True)
+        
+        # Update session state with the new value
         st.session_state.params_data[selected_day_clean][param] = val
+        
     i += 1
 
-# ----------------------------
-# Risk Classification
-# ----------------------------
-def classify_risk(value, param):
-    lower, upper = limits[param]
-    if value < lower or value > upper:
-        return "High"
-    else:
-        return "Normal"
+st.divider()
 
-if st.button("Analyze Data"):
+# ----------------------------
+# Analysis and Visualization Section
+# ----------------------------
+if st.button("Analyze and Generate Report", type="primary"):
     # Mark day as analyzed
     if selected_day_clean not in st.session_state.analyzed_days:
         st.session_state.analyzed_days.append(selected_day_clean)
+        # Force a rerun to update the selectbox label
+        st.rerun()
 
     # Combine all days into DataFrame
-    df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days ])
+    df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days])
+    
+    st.subheader("📊 Full Process Data Summary")
 
-    # ----------------------------
-    # Color cells based on range (red if out-of-range)
+    # Risk Classification for DataFrame Styling
     def style_cells(val, param):
         lower, upper = limits[param]
+        # Check if the value is numerical before comparison
+        if pd.isna(val) or not isinstance(val, (int, float)):
+             return ""
         if lower <= val <= upper:
-            return "color:black; font-weight:normal; text-align:center;"
+            # === MODIFIED: Green background for in-range values ===
+            return "background-color:#ccffcc; color:#006600; font-weight:normal; text-align:center;"
         else:
-            return "background-color:red; color:white; font-weight:bold; text-align:center;"
+            # Highlight out-of-range values in red
+            return "background-color:#ff4d4d; color:white; font-weight:bold; text-align:center;"
 
     # Apply styling for all parameter columns
     styled_df = df.style
     for param in params.keys():
         styled_df = styled_df.applymap(lambda v: style_cells(v, param), subset=[param])
 
-    st.subheader("📊 Process Data & Risk Levels")
-    st.dataframe(styled_df, height=500)
+    # Display the styled dataframe
+    st.dataframe(styled_df, height=300, use_container_width=True) # 
 
     # ----------------------------
-    # Summary
-    summary = ""
-    for param in params.keys():
-        lower, upper = limits[param]
-        for d in days:
+    # Summary of Critical Events
+    # ----------------------------
+    summary_list = []
+    for d in days:
+        for param, label in params.items():
+            lower, upper = limits[param]
             val = st.session_state.params_data[d][param]
             if val < lower:
-                summary += f"⚠️ {param} Low on {d}\n"
+                summary_list.append(f"⚠️ {label} (Value: {val:.2f}) is **below** the lower limit of {lower} on **{d}**.")
             elif val > upper:
-                summary += f"🔥 {param} High on {d}\n"
-    if not summary:
-        summary = "✅ All parameters within normal range."
+                summary_list.append(f"🔥 {label} (Value: {val:.2f}) is **above** the upper limit of {upper} on **{d}**.")
+                
+    if not summary_list:
+        summary_text = "✅ **System Status: Excellent.** All parameters across all days are within the normal operating range. No critical events detected."
+    else:
+        summary_text = "**Immediate Action Required:** The following critical events were detected across the analyzed days:\n\n- " + "\n- ".join(summary_list)
 
     st.markdown(f"""
     <div class='summary-card'>
     <h4>Summary of Critical Events</h4>
-    <pre>{summary}</pre>
+    <p>{summary_text}</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    st.markdown("---")
 
     # ----------------------------
-    # Trend Graph for all days
-    fig, ax = plt.subplots(figsize=(12, 6))
-    for param in params.keys():
-        ax.plot(df["Day"], df[param], marker="o", label=params[param], linewidth=2)
-    ax.set_title("Process Parameter Trends", fontsize=16, color="#ffb366")
-    ax.set_xlabel("Day")
-    ax.set_ylabel("Value")
-    ax.grid(True, linestyle="--", alpha=0.5)
-    ax.legend()
+    # Trend Graph for all days (using Matplotlib as in original)
+    # ----------------------------
+    st.subheader("📈 Process Parameter Trend Analysis")
+    
+    # Prepare the DataFrame for plotting (set Day as index for better plotting by Matplotlib)
+    plot_df = df.set_index("Day")
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    
+    # Plot each parameter
+    for param, label in params.items():
+        ax.plot(plot_df.index, plot_df[param], marker="o", label=label, linewidth=2)
+        
+        # Add limit lines for visual context (using pressure limits as a representative example)
+        lower, upper = limits[param]
+        ax.axhspan(lower * 0.95, lower * 1.05, color='gray', alpha=0.1, zorder=-1) # Shading around the limits
+        ax.axhspan(upper * 0.95, upper * 1.05, color='gray', alpha=0.1, zorder=-1) # Shading around the limits
+        
+    ax.set_title("Process Parameter Trends Over 5 Days", fontsize=16, color="#003366")
+    ax.set_xlabel("Day", fontsize=12)
+    ax.set_ylabel("Value", fontsize=12)
+    ax.grid(True, linestyle=":", alpha=0.6)
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=10)
+    plt.tight_layout()
     st.pyplot(fig)
+
+    # ----------------------------
+    # Individual Parameter Scatter/Line Charts (Enhanced View)
+    # ----------------------------
+    st.markdown("---")
+    st.subheader("Detail View: Individual Parameter Trends")
+    
+    # Select which parameter to view in detail
+    detail_param_label = st.selectbox("Select Parameter to View in Detail", list(params.values()))
+    detail_param_key = [k for k, v in params.items() if v == detail_param_label][0]
+    lower, upper = limits[detail_param_key]
+    
+    fig_detail, ax_detail = plt.subplots(figsize=(10, 4))
+    
+    # Plot the selected parameter trend
+    ax_detail.plot(df["Day"], df[detail_param_key], marker="o", color="#ff8000", linewidth=3, label="Actual Value")
+    
+    # Add High and Low Limit lines
+    ax_detail.axhline(upper, color='red', linestyle='--', label='Upper Limit')
+    ax_detail.axhline(lower, color='red', linestyle='--', label='Lower Limit')
+    
+    ax_detail.set_title(f"Trend for {detail_param_label}", fontsize=14, color="#003366")
+    ax_detail.set_xlabel("Day")
+    ax_detail.set_ylabel("Value")
+    ax_detail.legend(loc='best')
+    ax_detail.grid(True, linestyle=':', alpha=0.6)
+    plt.tight_layout()
+    st.pyplot(fig_detail)
