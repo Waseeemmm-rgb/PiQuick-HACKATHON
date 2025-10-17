@@ -121,16 +121,16 @@ if st.button("Analyze Data"):
     df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days ])
 
     # ----------------------------
-    # Color cells based on range
+    # Color cells based on range (red if out-of-range)
     def style_cells(val, param):
         lower, upper = limits[param]
         if lower <= val <= upper:
             return "color:black; font-weight:normal; text-align:center;"
         else:
-            return "color:red; font-weight:bold; text-align:center;"
+            return "background-color:red; color:white; font-weight:bold; text-align:center;"
 
     # Apply styling for all parameter columns
-    styled_df = df.style.applymap(lambda v: style_cells(v, "pressure"), subset=["pressure"])
+    styled_df = df.style
     for param in params.keys():
         styled_df = styled_df.applymap(lambda v: style_cells(v, param), subset=[param])
 
