@@ -14,7 +14,7 @@ st.markdown("""
 <style>
 body, .main, .block-container {
     background-color: #010823; 
-    color: #0fd593; 
+    color: #789ba6; 
 }
 h1, h2, h3, h4 {
     color: #ff8000; 
