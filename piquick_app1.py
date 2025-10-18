@@ -92,10 +92,10 @@ if 'selected_day_clean' not in st.session_state:
 dropdown_options = [f"{d} ✅" if d in st.session_state.analyzed_days else d for d in days]
 col1, col2 = st.columns([5, 1])
 with col1:
-    st.markdown("<h1>🚀 <span style='color:#ff8000;'>OQBI</span> Oman - PIQuick Risk Dashboard ⚙️📊</h1>", unsafe_allow_html=True)
-    st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily. 🛢️💡")
+    st.markdown("<h1><span style='color:#ff8000;'>OQBI</span> Oman - PIQuick Risk Dashboard</h1>", unsafe_allow_html=True)
+    st.write("Monitor industrial parameters, detect anomalies, and visualize trends easily.")
 with col2:
-    selected_day = st.selectbox("📅 Select Day", dropdown_options, key="day_selector",
+    selected_day = st.selectbox("Select Day", dropdown_options, key="day_selector",
                                 index=days.index(st.session_state.selected_day_clean))
 st.session_state.selected_day_clean = selected_day.replace(" ✅", "")
 selected_day_clean = st.session_state.selected_day_clean
@@ -121,7 +121,7 @@ st.markdown("""
 # ----------------------------
 # Input for Selected Day with ranges
 # ----------------------------
-st.markdown(f"<h3>📝 Enter Process Data for {selected_day_clean}</h3>", unsafe_allow_html=True)
+st.markdown(f"<h3>Enter Process Data for {selected_day_clean}</h3>", unsafe_allow_html=True)
 st.divider()
 cols = st.columns(3)
 i = 0
@@ -152,7 +152,7 @@ if st.button("Analyze and Generate Report", type="primary"):
 
     df = pd.DataFrame([{ "Day": d, **st.session_state.params_data[d]} for d in days])
     
-    st.subheader("📊 Full Process Data Summary")
+    st.subheader("Full Process Data Summary")
     
     # ----------------------------
     # ✅ Highlight out-of-range values in red cells
@@ -187,7 +187,7 @@ if st.button("Analyze and Generate Report", type="primary"):
 
     # ----------------------------
     # Trend Graph for all days
-    st.subheader("📈 Process Parameter Trend Analysis")
+    st.subheader("Process Parameter Trend Analysis")
     plot_df = df.set_index("Day")
     fig, ax = plt.subplots(figsize=(12, 5))
     for param, label in params.items():
