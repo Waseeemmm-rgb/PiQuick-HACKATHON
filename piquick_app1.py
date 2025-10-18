@@ -13,7 +13,7 @@ st.set_page_config(page_title="PIQuick Dashboard - OQBI Oman", layout="wide")
 st.markdown("""
 <style>
 body, .main, .block-container {
-    background-color: #010823; 
+    background-color: #fafdfd; 
     color: #789ba6; 
 }
 h1, h2, h3, h4 {
